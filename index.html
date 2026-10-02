@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>明日の服装予報（ライト版）</title>
+    <title>明日の服装予報（ライト高精度版）</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f2f2f7">
@@ -72,6 +72,19 @@
         .ptr-icon-spin {
             animation: spin 0.75s linear infinite;
         }
+
+        /* スクロールバーのスリムスタイリング */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 9999px;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-[#f2f2f7] flex flex-col justify-between p-4 safe-area-top safe-area-bottom selection:bg-orange-500 selection:text-white text-[14px]">
@@ -86,8 +99,8 @@
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
             </h1>
-            <p id="headerSubtitle" class="text-[14px] text-[#6c6c70] mt-1 text-wrap-optimal font-normal">
-                気象庁公式データ ＆ 体感温度連動
+            <p id="headerSubtitle" class="text-[13px] text-[#6c6c70] mt-1 text-wrap-optimal font-normal">
+                気象庁公式 ＆ 8-17時平均体感温度連動
             </p>
         </header>
 
@@ -164,8 +177,8 @@
             <!-- Loading State -->
             <div id="loading" class="hidden py-6 flex flex-col items-center justify-center">
                 <div class="ios-loader w-8 h-8 mb-3"></div>
-                <p id="loadingText" class="text-[14px] font-medium text-[#6c6c70] text-wrap-optimal animate-pulse text-center">
-                    気象庁データ取得 ＆ 体感温度・服装判定中...
+                <p id="loadingText" class="text-[13px] font-medium text-[#6c6c70] text-wrap-optimal animate-pulse text-center">
+                    気象庁データ ＆ 8-17時体感温度取得中...
                 </p>
             </div>
         </div>
@@ -228,8 +241,9 @@
                             <span id="resultWeatherEmoji" class="text-xl">🌤</span>
                             <span id="forecastHeaderTitle" class="text-[15px] font-bold text-[#1c1c1e]">予報</span>
                         </div>
-                        <div>
-                            <span id="forecastApparentBadge" class="text-[14px] bg-orange-100/80 text-orange-600 font-bold px-2 py-0.5 rounded-full border border-orange-200">体感 --℃</span>
+                        <div class="flex items-center gap-1.5">
+                            <span id="forecastWindBadge" class="text-[12px] bg-cyan-50 text-cyan-700 font-bold px-2 py-0.5 rounded-full border border-cyan-200">💨 -- m/s</span>
+                            <span id="forecastApparentBadge" class="text-[13px] bg-orange-100/80 text-orange-600 font-bold px-2 py-0.5 rounded-full border border-orange-200">日中体感 --℃</span>
                         </div>
                     </div>
                     <!-- 予報詳細テーブルコンテナ -->
@@ -243,19 +257,20 @@
                             <span class="text-base">👔</span>
                             <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider">推奨服装</h3>
                         </div>
-                        <span id="criteriaBadge" class="text-[14px] text-[#4b5563] font-semibold">--</span>
+                        <span id="criteriaBadge" class="text-[13px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#4b5563] font-semibold">--</span>
                     </div>
                     <div id="outfitSection" class="space-y-1.5"></div>
                     
                     <!-- 朝・昼・夜の気温＆服装タイムライン -->
                     <div class="bg-white rounded-xl p-2.5 border border-[#e5e5ea] space-y-2 mt-2 shadow-xs">
-                        <div class="flex items-center justify-between text-[12pt] px-0.5">
-                            <span class="font-bold text-[#d97706] flex items-center gap-1">
+                        <div class="flex items-center justify-between px-0.5">
+                            <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
                                 <span>🕒</span>
-                                <span>朝・昼・夜の寒暖差対策</span>
+                                <span>朝・昼・夜の寒暖差対策（実測予測）</span>
                             </span>
+                            <span class="text-[11px] text-[#8e8e93]">Open-Meteo連動</span>
                         </div>
-                        <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center text-[12pt]">
+                        <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
                             <!-- JavaScriptで動的生成 -->
                         </div>
                     </div>
@@ -275,28 +290,31 @@
             </div>
         </div>
 
-        <!-- JMA Overview Popup Modal (Light) -->
+        <!-- JMA Overview & 7-Day Forecast Popup Modal (Light) -->
         <div id="overviewModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
-            <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[85vh]">
+            <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[88vh]">
                 <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <span class="text-base">📅</span>
                         <h3 id="jmaOverviewTitle" class="text-[15px] font-bold text-[#1c1c1e]">気象庁 週間天気予報</h3>
                     </div>
-                    <span id="jmaReportTimeBadge" class="text-[13px] text-[#6c6c70] font-mono">--:-- 発表</span>
+                    <span id="jmaReportTimeBadge" class="text-[12px] text-[#6c6c70] font-mono">--:-- 発表</span>
                 </div>
 
-                <!-- 4日間の週間天気予報カード（ライト調） -->
+                <!-- 7日間の週間天気予報カード（横スクロール対応） -->
                 <div class="shrink-0 space-y-1.5">
                     <div class="text-[13px] font-semibold text-[#d97706] flex items-center justify-between">
                         <span class="flex items-center gap-1">
                             <span>🌤</span>
-                            <span>直近4日間の週間予報</span>
+                            <span>気象庁 週間予報（直近7日間）</span>
                         </span>
-                        <span class="text-[11px] text-[#6c6c70] font-normal">気象庁公式発表連動</span>
+                        <span class="text-[11px] text-[#6c6c70] font-normal">公式降水確率＆気温</span>
                     </div>
-                    <div id="weeklyForecastGrid" class="grid grid-cols-4 gap-1.5">
-                        <!-- JavaScriptで動的生成 -->
+                    <!-- 横スクロールコンテナ -->
+                    <div id="weeklyForecastScroll" class="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 pr-0.5">
+                        <div id="weeklyForecastGrid" class="flex gap-2 min-w-full">
+                            <!-- JavaScriptで動的生成 -->
+                        </div>
                     </div>
                 </div>
 
@@ -304,7 +322,7 @@
                 <div class="flex-1 overflow-hidden flex flex-col min-h-0 pt-1 border-t border-[#e5e5ea]">
                     <div class="text-[13px] font-semibold text-[#6c6c70] mb-1 flex items-center gap-1">
                         <span>📜</span>
-                        <span>気象庁 天気概況</span>
+                        <span>気象庁 天気概況（公式テキスト）</span>
                     </div>
                     <div id="jmaOverviewText" class="text-[14px] text-[#2c2c2e] leading-relaxed whitespace-pre-wrap overflow-y-auto pr-1 py-1 flex-1">
                         気象概況を取得中...
@@ -352,7 +370,7 @@
 
     <!-- Minimal Footer (Light) -->
     <footer class="text-center py-2">
-        <p class="text-[14px] text-[#8e8e93]">気象庁公式データ ＆ Open-Meteo連携</p>
+        <p class="text-[13px] text-[#8e8e93]">気象庁公式データ ＆ Open-Meteo連携</p>
     </footer>
 
     <script>
@@ -361,7 +379,7 @@
         const STORAGE_KEY_API_KEY = 'weather_checker_gemini_key';
         const DEFAULT_LOCATIONS = ['東京都品川区', '横浜市中区', '大阪市北区'];
 
-        // 全国47都道府県 気象庁府県予報区コード
+        // 全国主要都市 気象庁府県予報区コード
         const PREFECTURE_MAP = {
             '北海道': { code: '016000', lat: 43.0642, lon: 141.3469 },
             '札幌':   { code: '016000', lat: 43.0642, lon: 141.3469 },
@@ -437,7 +455,7 @@
             '那覇':   { code: '471000', lat: 26.2124, lon: 127.6809 }
         };
 
-        // 指定された手持ち服リスト＆体感温度による厳格な判定基準（変更不可）
+        // 指定された手持ち服リスト＆体感温度による厳格な判定基準（変更完全禁止）
         function evaluateClothingByCriteria(apparentTemp) {
             let label = '';
             let jacket = '';
@@ -472,10 +490,19 @@
             return { label, jacket, pants };
         }
 
+        function getWindStateLabel(speed) {
+            if (speed >= 15) return '暴風・厳重警戒';
+            if (speed >= 10) return '強風・煽られ注意';
+            if (speed >= 6) return 'やや強い風';
+            if (speed >= 3) return '適度な風';
+            return '穏やか・微風';
+        }
+
         let locations = [];
         let activeLocation = '東京都品川区';
         let selectedDay = 'tomorrow'; // 'today' | 'tomorrow'
         let cachedForecastData = null; // 今日・明日のデータを保持して即時切り替え
+        let lastFetchedTimestamp = 0;
         let isRefreshing = false; // 二重更新ガード
 
         function setTargetDay(day) {
@@ -536,6 +563,26 @@
             const keyInput = document.getElementById('userApiKey');
             if (savedApiKey && keyInput) {
                 keyInput.value = savedApiKey;
+            }
+        });
+
+        // 復帰時の自動再取得（10分以上経過時）
+        function checkAndAutoRefresh() {
+            const now = Date.now();
+            if (now - lastFetchedTimestamp >= 10 * 60 * 1000) {
+                getRecommendation(true);
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                checkAndAutoRefresh();
+            }
+        });
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                checkAndAutoRefresh();
             }
         });
 
@@ -855,7 +902,7 @@
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature&timezone=Asia%2FTokyo&forecast_days=7${cacheBuster}`;
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature&timezone=Asia%2FTokyo&forecast_days=8${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -882,7 +929,7 @@
                 }
 
                 if (jmaOverviewTitle) jmaOverviewTitle.innerText = `週間予報（${overviewTarget || targetLocation}）`;
-                if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '公式発表';
+                if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁公式発表';
                 if (jmaOverviewText) jmaOverviewText.innerText = overviewBody;
 
                 let jmaData = null;
@@ -895,10 +942,10 @@
                     meteoData = await meteoRes.json();
                 }
 
-                // 4日間の週間予報カードを描画
+                // 7日間の週間予報カードを描画（気象庁公式最優先）
                 renderWeeklyCards(meteoData, jmaData);
 
-                // 今日と明日の予報オブジェクトを作成
+                // 今日と明日の予報オブジェクトを作成（8-17時平均体感温度 ＆ ピンポイント実測気温）
                 const parseDayData = (dateStr, fallbackIdx, labelPrefix) => {
                     let weatherText = '曇り時々晴れ';
                     let windText = '北寄りの風';
@@ -991,7 +1038,7 @@
                         }
                     }
 
-                    // Open-Meteo Hourly（朝8時〜夕方17時の体感温度を厳密に集計）
+                    // 【最高精度】Open-Meteo Hourlyからピンポイント実測気温（8時、14時、20時）を抽出
                     const hourly = meteoData?.hourly;
                     if (hourly && Array.isArray(hourly.time)) {
                         const mMorningIdx = hourly.time.indexOf(`${dateStr}T08:00`);
@@ -1008,7 +1055,7 @@
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
-                        // 8時〜17時（計10時間）の体感温度を抽出して平均を算出
+                        // 【最高精度】8時〜17時（計10時間）の体感温度を抽出して平均を算出
                         let daytimeApparentTemps = [];
                         for (let h = 8; h <= 17; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
@@ -1052,6 +1099,7 @@
                     today: parseDayData(todayStr, 0, '今日'),
                     tomorrow: parseDayData(tomorrowStr, 1, '明日')
                 };
+                lastFetchedTimestamp = Date.now();
 
                 updateTabStyles();
                 renderForecastView(cachedForecastData[selectedDay]);
@@ -1080,6 +1128,7 @@
 
             const forecastHeaderTitle = document.getElementById('forecastHeaderTitle');
             const forecastApparentBadge = document.getElementById('forecastApparentBadge');
+            const forecastWindBadge = document.getElementById('forecastWindBadge');
             const emojiEl = document.getElementById('resultWeatherEmoji');
             const forecastSec = document.getElementById('forecastSection');
             const criteriaBadge = document.getElementById('criteriaBadge');
@@ -1100,9 +1149,11 @@
             }
 
             const outfit = evaluateClothingByCriteria(apparentTemp);
+            const windDesc = getWindStateLabel(maxWindSpeed);
 
             if (forecastHeaderTitle) forecastHeaderTitle.innerText = `${targetDateLabel}の予報`;
-            if (forecastApparentBadge) forecastApparentBadge.innerText = `体感 ${apparentTemp}℃`;
+            if (forecastApparentBadge) forecastApparentBadge.innerText = `日中体感 ${apparentTemp}℃`;
+            if (forecastWindBadge) forecastWindBadge.innerText = `💨 約${maxWindSpeed}m/s`;
 
             const popDisplay = popList.length > 0 ? popList.join(' / ') : '--%';
 
@@ -1113,8 +1164,15 @@
                         <span class="text-[#1c1c1e] font-bold text-right text-[15px]">${escapeHtml(weatherText)}</span>
                     </div>
                     <div class="flex justify-between py-1.5 border-b border-[#f2f2f7] items-center">
+                        <span class="text-[#6c6c70] text-[14px]">風速（風の強さ）</span>
+                        <span class="text-cyan-700 font-mono font-bold text-[15px] flex items-center gap-1.5">
+                            <span>💨 約 ${maxWindSpeed} m/s</span>
+                            <span class="text-[12px] font-medium text-[#4b5563] bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-200">${windDesc}</span>
+                        </span>
+                    </div>
+                    <div class="flex justify-between py-1.5 border-b border-[#f2f2f7] items-center">
                         <span class="text-[#6c6c70] text-[14px]">風の予報</span>
-                        <span class="text-[#1c1c1e] font-medium text-right text-[15px]">${escapeHtml(windText)} (最大約${maxWindSpeed}m/s)</span>
+                        <span class="text-[#1c1c1e] font-medium text-right text-[15px] max-w-[210px] truncate" title="${escapeHtml(windText)}">${escapeHtml(windText)}</span>
                     </div>
                     <div class="flex justify-between py-1.5 border-b border-[#f2f2f7] items-center">
                         <span class="text-[#6c6c70] text-[14px]">気温（最低 / 最高）</span>
@@ -1230,6 +1288,7 @@
             return '🌤';
         }
 
+        // 7日間の週間予報カードを描画（気象庁公式最優先）
         function renderWeeklyCards(meteoData, jmaData) {
             const grid = document.getElementById('weeklyForecastGrid');
             if (!grid) return;
@@ -1247,9 +1306,10 @@
             const meteoDaily = meteoData?.daily;
             const tomorrowStr = getTomorrowDateString();
 
+            // 明日から7日分の日付配列（YYYY-MM-DD）
             const targetDates = [];
             const baseTime = new Date(tomorrowStr + 'T00:00:00');
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 7; i++) {
                 const target = new Date(baseTime.getTime() + i * 24 * 60 * 60 * 1000);
                 const y = target.getFullYear();
                 const m = String(target.getMonth() + 1).padStart(2, '0');
@@ -1335,9 +1395,8 @@
                 const displayPop = pop !== null ? `${pop}%` : '--%';
                 const displayEmoji = weatherEmoji || '🌤';
 
-                // 白ベースの清潔なカードデザイン
                 return `
-                    <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-xl p-1.5 flex flex-col items-center justify-between text-center shadow-xs">
+                    <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-xl p-1.5 flex flex-col items-center justify-between text-center shadow-xs w-[76px] shrink-0">
                         <div class="text-[12px] text-[#8e8e93] font-mono leading-none pt-0.5">${month}/${date}</div>
                         <div class="text-[13px] font-bold ${dayColorClass} leading-tight mb-0.5">(${dayText})</div>
                         <div class="text-[22px] my-0.5 leading-none select-none">${displayEmoji}</div>
@@ -1357,12 +1416,12 @@
 
             grid.innerHTML = cardsHtml;
         }
-    </script>
-    <script>
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
+                        registration.update();
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }, err => {
                         console.log('ServiceWorker registration failed: ', err);
