@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>明日の服装予報（ライト高精度版）</title>
+    <title>明日の服装予報</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f2f2f7">
+    <meta name="theme-color" content="#ffffff">
     <link rel="apple-touch-icon" href="icon-180.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -69,9 +69,6 @@
         #ptrContainer.ptr-dragging {
             transition: none;
         }
-        .ptr-icon-spin {
-            animation: spin 0.75s linear infinite;
-        }
 
         /* スクロールバーのスリムスタイリング */
         ::-webkit-scrollbar {
@@ -87,14 +84,15 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-[#f2f2f7] flex flex-col justify-between p-4 safe-area-top safe-area-bottom selection:bg-orange-500 selection:text-white text-[14px]">
+<body class="min-h-screen bg-[#f2f2f7] flex flex-col justify-between selection:bg-orange-500 selection:text-white text-[14px]">
 
-    <div class="w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4">
+    <!-- Main Screen Container (結果表示時は非表示にして透けを防止) -->
+    <div id="mainScreenContainer" class="w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 safe-area-top safe-area-bottom">
         
         <!-- iOS Style Light Header -->
         <header class="pt-2 pb-1 text-center relative">
             <button type="button" onclick="toggleSettingsModal(true)" class="absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
-                ⚙️
+                ⚙
             </button>
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
@@ -183,10 +181,21 @@
             </div>
         </div>
 
-        <!-- Fullscreen Result View (Light) -->
-        <div id="resultBox" class="hidden fixed inset-0 z-50 bg-[#f2f2f7]/95 backdrop-blur-xl flex flex-col safe-area-top safe-area-bottom">
-            <!-- Navigation Bar with Location Selector Dropdown & Action Buttons -->
-            <div class="flex items-center justify-between px-3 py-2 border-b border-[#e5e5ea] bg-white/85 backdrop-blur-md shrink-0 shadow-sm gap-2">
+        <!-- Error Card -->
+        <div id="errorBox" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed text-wrap-optimal shadow-sm"></div>
+
+        <!-- Minimal Footer -->
+        <footer class="text-center py-2">
+            <p class="text-[13px] text-[#4b5563] font-medium">気象庁公式データ ＆ Open-Meteo連携</p>
+        </footer>
+    </div>
+
+    <!-- Fullscreen Result View (不透明背景・上部ブラーぼやけ解消) -->
+    <div id="resultBox" class="hidden fixed inset-0 z-50 bg-[#f2f2f7] flex flex-col safe-area-bottom">
+        
+        <!-- Navigation Bar: iOSのステータスバーまで白背景を伸ばしてぼやけ・透けを解消 -->
+        <div class="w-full bg-white border-b border-[#e5e5ea] shadow-xs safe-area-top shrink-0">
+            <div class="max-w-sm mx-auto flex items-center justify-between px-3 py-2 gap-2">
                 <!-- 登録地点切り替えプルダウン -->
                 <div class="relative flex items-center flex-1 max-w-[220px]">
                     <span class="absolute left-2.5 pointer-events-none text-[14px]">📍</span>
@@ -209,220 +218,207 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Scrollable Content Area with Pull To Refresh support -->
-            <div id="resultScrollContainer" class="flex-1 overflow-y-auto px-3.5 py-1 space-y-2.5 max-w-sm w-full mx-auto overscroll-y-contain">
-                
-                <!-- Pull-To-Refresh Indicator Block (Light) -->
-                <div id="ptrContainer" class="w-full">
-                    <div class="flex items-center justify-center gap-2 py-2 text-[#4b5563] text-[13px] font-medium">
-                        <div id="ptrIcon" class="transition-transform duration-200 text-[#ff9500]">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                        </div>
-                        <span id="ptrText">下に引いて最新情報を更新</span>
-                    </div>
-                </div>
-
-                <!-- In-Result Day Switcher -->
-                <div class="grid grid-cols-2 gap-1 bg-[#e5e5ea]/70 p-1 rounded-xl border border-[#d1d1d6]">
-                    <button 
-                        type="button" 
-                        id="resTabToday"
-                        onclick="switchResultDay('today')" 
-                        class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563]">
-                        今日
-                    </button>
-                    <button 
-                        type="button" 
-                        id="resTabTomorrow"
-                        onclick="switchResultDay('tomorrow')" 
-                        class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
-                        明日
-                    </button>
-                </div>
-
-                <!-- Weather Details Section (画像スタイルに刷新) -->
-                <div class="bg-white rounded-2xl p-2.5 border border-[#e5e5ea] shadow-sm">
-                    <!-- 画像完全再現メイン表示エリア（余白を圧縮してコンパクト化） -->
-                    <div class="flex flex-col items-center justify-center text-center pt-0.5 pb-1">
-                        <!-- 日付表示: 今日 10/2 (金) -->
-                        <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">
-                            --
-                        </div>
-
-                        <!-- 大きな天気アイコン -->
-                        <div id="imageStyleIcon" class="w-20 h-20 flex items-center justify-center my-0.5 select-none">
-                            <!-- SVG動的描画 -->
-                        </div>
-
-                        <!-- 天気表示 -->
-                        <div class="flex items-center justify-center mt-1 mb-1">
-                            <span id="imageStyleWeatherText" class="text-[21px] font-bold text-[#1c1c1e]">--</span>
-                        </div>
-
-                        <!-- 最高気温 / 最低気温（前日比は非表示） -->
-                        <div class="flex items-baseline justify-center gap-6 text-[28px] font-bold mt-0.5 tracking-tight">
-                            <!-- 最高気温 -->
-                            <div class="text-[#e03131] flex items-baseline">
-                                <span id="imageStyleMaxTemp" class="leading-none">--</span><span class="text-[17px] font-normal leading-none">℃</span>
-                            </div>
-                            <!-- 最低気温 -->
-                            <div class="text-[#007aff] flex items-baseline">
-                                <span id="imageStyleMinTemp" class="leading-none">--</span><span class="text-[17px] font-normal leading-none">℃</span>
-                            </div>
-                        </div>
-
-                        <!-- 気温の下の体感温度表示 -->
-                        <div class="mt-1.5 text-center">
-                            <span class="inline-flex items-center gap-1 text-[14px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
-                                <span>体感温度:</span>
-                                <span id="imageStyleApparentTemp" class="font-bold font-mono text-[15px]">--℃</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
-                    <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
-                        <!-- 6時間置きの降水確率表示 -->
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
-                            </div>
-                            <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
-                                <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                    <div class="text-[13px] text-[#4b5563] font-semibold">0-6時</div>
-                                    <div id="popSlot0" class="text-[15px] font-bold text-[#007aff]">--%</div>
-                                </div>
-                                <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                    <div class="text-[13px] text-[#4b5563] font-semibold">6-12時</div>
-                                    <div id="popSlot1" class="text-[15px] font-bold text-[#007aff]">--%</div>
-                                </div>
-                                <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                    <div class="text-[13px] text-[#4b5563] font-semibold">12-18時</div>
-                                    <div id="popSlot2" class="text-[15px] font-bold text-[#007aff]">--%</div>
-                                </div>
-                                <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                    <div class="text-[13px] text-[#4b5563] font-semibold">18-24時</div>
-                                    <div id="popSlot3" class="text-[15px] font-bold text-[#007aff]">--%</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 風速・風の行 -->
-                        <div class="flex justify-between items-center py-0.5">
-                            <span class="text-[#374151] font-medium text-[14px]">風速</span>
-                            <span id="subWindSpeed" class="text-cyan-700 font-mono font-bold text-[15px]">--</span>
-                        </div>
-                        <div class="flex justify-between items-center py-0.5">
-                            <span class="text-[#374151] font-medium text-[14px]">風</span>
-                            <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[230px] font-medium text-[15px]">--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Outfit Section -->
-                <div class="bg-orange-50/70 rounded-2xl p-3 border border-orange-200 shadow-sm space-y-2">
-                    <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-base">👔</span>
-                            <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider">推奨服装</h3>
-                        </div>
-                        <span id="criteriaBadge" class="text-[13px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold">--</span>
-                    </div>
-                    <div id="outfitSection" class="space-y-1.5"></div>
-                    
-                    <!-- 朝・昼・夜の気温＆服装タイムライン -->
-                    <div class="bg-white rounded-xl p-2.5 border border-[#e5e5ea] space-y-2 mt-2 shadow-xs">
-                        <div class="flex items-center justify-between px-0.5">
-                            <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
-                                <span>🕒</span>
-                                <span>朝・昼・夜の寒暖差</span>
-                            </span>
-                        </div>
-                        <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
-                            <!-- JavaScriptで動的生成 -->
-                        </div>
-                    </div>
-
-                    <!-- Rain / Acc Advice -->
-                    <div id="accessoryAdvice" class="mt-2 bg-white/90 rounded-xl p-2.5 border border-orange-200/80 text-[14px] text-[#374151] shadow-xs leading-relaxed">
-                        <!-- Dynamic accessory notice -->
-                    </div>
-                </div>
-
-                <!-- Bottom Back Button -->
-                <div class="pt-1 pb-4">
-                    <button type="button" onclick="closeResult()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-10 rounded-xl border border-[#d1d1d6] shadow-sm transition-all flex items-center justify-center gap-1.5">
-                        <span>📍</span>
-                        <span>登録地点検索</span>
-                    </button>
-                </div>
-            </div>
         </div>
 
-        <!-- JMA 7-Day Forecast Popup Modal (画像デザイン対応・概況削除) -->
-        <div id="overviewModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
-            <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[90vh]">
-                <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
-                    <div class="flex items-center gap-1.5">
-                        <span class="text-lg">📅</span>
-                        <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e]">週間天気予報</h3>
+        <!-- Scrollable Content Area with Pull To Refresh support -->
+        <div id="resultScrollContainer" class="flex-1 overflow-y-auto px-3.5 py-2 space-y-2.5 max-w-sm w-full mx-auto overscroll-y-contain">
+            
+            <!-- Pull-To-Refresh Indicator Block -->
+            <div id="ptrContainer" class="w-full">
+                <div class="flex items-center justify-center gap-2 py-2 text-[#4b5563] text-[13px] font-medium">
+                    <div id="ptrIcon" class="transition-transform duration-200 text-[#ff9500]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        </svg>
                     </div>
-                    <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium">--:-- 発表</span>
+                    <span id="ptrText">下に引いて最新情報を更新</span>
+                </div>
+            </div>
+
+            <!-- In-Result Day Switcher -->
+            <div class="grid grid-cols-2 gap-1 bg-[#e5e5ea]/70 p-1 rounded-xl border border-[#d1d1d6]">
+                <button 
+                    type="button" 
+                    id="resTabToday"
+                    onclick="switchResultDay('today')" 
+                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563]">
+                    今日
+                </button>
+                <button 
+                    type="button" 
+                    id="resTabTomorrow"
+                    onclick="switchResultDay('tomorrow')" 
+                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
+                    明日
+                </button>
+            </div>
+
+            <!-- Weather Details Section -->
+            <div class="bg-white rounded-2xl p-2.5 border border-[#e5e5ea] shadow-sm">
+                <!-- メイン表示エリア -->
+                <div class="flex flex-col items-center justify-center text-center pt-0.5 pb-1">
+                    <!-- 日付表示 -->
+                    <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">
+                        --
+                    </div>
+
+                    <!-- 大きな天気アイコン -->
+                    <div id="imageStyleIcon" class="w-20 h-20 flex items-center justify-center my-0.5 select-none">
+                        <!-- SVG動的描画 -->
+                    </div>
+
+                    <!-- 天気表示 -->
+                    <div class="flex items-center justify-center mt-1 mb-1">
+                        <span id="imageStyleWeatherText" class="text-[21px] font-bold text-[#1c1c1e]">--</span>
+                    </div>
+
+                    <!-- 最高気温 / 最低気温 -->
+                    <div class="flex items-baseline justify-center gap-6 text-[28px] font-bold mt-0.5 tracking-tight">
+                        <div class="text-[#e03131] flex items-baseline">
+                            <span id="imageStyleMaxTemp" class="leading-none">--</span><span class="text-[17px] font-normal leading-none">℃</span>
+                        </div>
+                        <div class="text-[#007aff] flex items-baseline">
+                            <span id="imageStyleMinTemp" class="leading-none">--</span><span class="text-[17px] font-normal leading-none">℃</span>
+                        </div>
+                    </div>
+
+                    <!-- 体感温度表示 -->
+                    <div class="mt-1.5 text-center">
+                        <span class="inline-flex items-center gap-1 text-[14px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
+                            <span>体感温度:</span>
+                            <span id="imageStyleApparentTemp" class="font-bold font-mono text-[15px]">--℃</span>
+                        </span>
+                    </div>
                 </div>
 
-                <!-- 画像再現：週間天気リスト（縦並びスクロール） -->
-                <div class="flex-1 overflow-y-auto pr-0.5">
-                    <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
+                <!-- サブ情報エリア（6時間毎の降水確率・風速・風） -->
+                <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
+                        </div>
+                        <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
+                            <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
+                                <div class="text-[13px] text-[#4b5563] font-semibold">0-6時</div>
+                                <div id="popSlot0" class="text-[15px] font-bold text-[#007aff]">--%</div>
+                            </div>
+                            <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
+                                <div class="text-[13px] text-[#4b5563] font-semibold">6-12時</div>
+                                <div id="popSlot1" class="text-[15px] font-bold text-[#007aff]">--%</div>
+                            </div>
+                            <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
+                                <div class="text-[13px] text-[#4b5563] font-semibold">12-18時</div>
+                                <div id="popSlot2" class="text-[15px] font-bold text-[#007aff]">--%</div>
+                            </div>
+                            <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
+                                <div class="text-[13px] text-[#4b5563] font-semibold">18-24時</div>
+                                <div id="popSlot3" class="text-[15px] font-bold text-[#007aff]">--%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center py-0.5">
+                        <span class="text-[#374151] font-medium text-[14px]">風速</span>
+                        <span id="subWindSpeed" class="text-cyan-700 font-mono font-bold text-[15px]">--</span>
+                    </div>
+                    <div class="flex justify-between items-center py-0.5">
+                        <span class="text-[#374151] font-medium text-[14px]">風</span>
+                        <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[230px] font-medium text-[15px]">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outfit Section -->
+            <div class="bg-orange-50/70 rounded-2xl p-3 border border-orange-200 shadow-sm space-y-2">
+                <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-base">👔</span>
+                        <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider">推奨服装</h3>
+                    </div>
+                    <span id="criteriaBadge" class="text-[13px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold">--</span>
+                </div>
+                <div id="outfitSection" class="space-y-1.5"></div>
+                
+                <!-- 朝・昼・夜の気温＆服装タイムライン -->
+                <div class="bg-white rounded-xl p-2.5 border border-[#e5e5ea] space-y-2 mt-2 shadow-xs">
+                    <div class="flex items-center justify-between px-0.5">
+                        <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
+                            <span>🕒</span>
+                            <span>朝・昼・夜の寒暖差</span>
+                        </span>
+                    </div>
+                    <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
                         <!-- JavaScriptで動的生成 -->
                     </div>
                 </div>
 
-                <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
-                    <button type="button" onclick="toggleOverviewModal(false)" class="ios-btn w-full bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] font-semibold text-[15px] py-2 rounded-xl border border-[#d1d1d6] shadow-sm">
-                        閉じる
-                    </button>
+                <!-- Rain / Acc Advice -->
+                <div id="accessoryAdvice" class="mt-2 bg-white/90 rounded-xl p-2.5 border border-orange-200/80 text-[14px] text-[#374151] shadow-xs leading-relaxed">
+                    <!-- Dynamic accessory notice -->
                 </div>
             </div>
-        </div>
 
-        <!-- Settings Modal (Light) -->
-        <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white border border-[#e5e5ea] rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-[17px] font-bold text-[#1c1c1e]">⚙️ API詳細設定（任意）</h3>
-                    <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
-                </div>
-                <p class="text-[14px] text-[#4b5563] leading-relaxed">
-                    標準状態で登録不要の気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
-                </p>
-                <div>
-                    <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（設定すると高度な助言を追加可能）</label>
-                    <input 
-                        type="password" 
-                        id="userApiKey" 
-                        placeholder="AI Studioのキー（空欄でOK）"
-                        class="w-full bg-[#f2f2f7] border border-[#d1d1d6] text-[#1c1c1e] text-[14px] rounded-xl px-3 py-2 outline-none focus:border-[#007aff]"
-                    >
-                </div>
-                <div class="flex gap-2">
-                    <button type="button" onclick="saveApiKeySettings()" class="flex-1 bg-[#007aff] hover:bg-[#0062cc] text-white py-2 rounded-xl text-[14px] font-semibold transition-colors shadow-sm">保存する</button>
-                    <button type="button" onclick="toggleSettingsModal(false)" class="bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#4b5563] px-4 py-2 rounded-xl text-[14px] transition-colors border border-[#d1d1d6]">キャンセル</button>
-                </div>
+            <!-- Bottom Back Button -->
+            <div class="pt-1 pb-4">
+                <button type="button" onclick="closeResult()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-10 rounded-xl border border-[#d1d1d6] shadow-sm transition-all flex items-center justify-center gap-1.5">
+                    <span>📍</span>
+                    <span>登録地点検索へ戻る</span>
+                </button>
             </div>
         </div>
-
-        <!-- Error Card -->
-        <div id="errorBox" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed text-wrap-optimal shadow-sm"></div>
-
     </div>
 
-    <!-- Minimal Footer (Light) -->
-    <footer class="text-center py-2">
-        <p class="text-[13px] text-[#4b5563] font-medium">気象庁公式データ ＆ Open-Meteo連携</p>
-    </footer>
+    <!-- JMA 7-Day Forecast Popup Modal -->
+    <div id="overviewModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
+        <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-lg">📅</span>
+                    <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e]">週間天気予報</h3>
+                </div>
+                <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium">--:-- 発表</span>
+            </div>
+
+            <!-- 週間天気リスト -->
+            <div class="flex-1 overflow-y-auto pr-0.5">
+                <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
+                    <!-- JavaScriptで動的生成 -->
+                </div>
+            </div>
+
+            <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
+                <button type="button" onclick="toggleOverviewModal(false)" class="ios-btn w-full bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] font-semibold text-[15px] py-2 rounded-xl border border-[#d1d1d6] shadow-sm">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white border border-[#e5e5ea] rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-[17px] font-bold text-[#1c1c1e]">⚙️ 設定（任意）</h3>
+                <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
+            </div>
+            <p class="text-[14px] text-[#4b5563] leading-relaxed">
+                気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
+            </p>
+            <div>
+                <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（任意）</label>
+                <input 
+                    type="password" 
+                    id="userApiKey" 
+                    placeholder="AI Studioのキー（空欄でOK）"
+                    class="w-full bg-[#f2f2f7] border border-[#d1d1d6] text-[#1c1c1e] text-[14px] rounded-xl px-3 py-2 outline-none focus:border-[#007aff]"
+                >
+            </div>
+            <div class="flex gap-2">
+                <button type="button" onclick="saveApiKeySettings()" class="flex-1 bg-[#007aff] hover:bg-[#0062cc] text-white py-2 rounded-xl text-[14px] font-semibold transition-colors shadow-sm">保存する</button>
+                <button type="button" onclick="toggleSettingsModal(false)" class="bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#4b5563] px-4 py-2 rounded-xl text-[14px] transition-colors border border-[#d1d1d6]">キャンセル</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
@@ -508,7 +504,7 @@
             '那覇':   { code: '471000', lat: 26.2124, lon: 127.6809 }
         };
 
-        // 指定された手持ち服リスト＆体感温度による厳格な判定基準（変更完全禁止）
+        // 指定された手持ち服リスト＆体感温度による判定基準
         function evaluateClothingByCriteria(apparentTemp) {
             let label = '';
             let jacket = '';
@@ -576,7 +572,6 @@
         function updateTabStyles() {
             const isToday = (selectedDay === 'today');
             
-            // メイン画面のタブ更新（ライトモード用配色）
             const mToday = document.getElementById('mainTabToday');
             const mTomorrow = document.getElementById('mainTabTomorrow');
             const checkLabel = document.getElementById('checkBtnLabel');
@@ -591,7 +586,6 @@
                 }
             }
 
-            // 結果画面内のタブ更新
             const resToday = document.getElementById('resTabToday');
             const resTomorrow = document.getElementById('resTabTomorrow');
             if (resToday && resTomorrow) {
@@ -613,7 +607,6 @@
             loadLocations();
             renderLocations();
 
-            // 直前に選択していた対象日（今日／明日）を復元
             const savedDay = localStorage.getItem(STORAGE_KEY_SELECTED_DAY);
             if (savedDay === 'today' || savedDay === 'tomorrow') {
                 selectedDay = savedDay;
@@ -634,7 +627,6 @@
             });
         });
 
-        // 復帰時の自動再取得（10分以上経過時）
         function checkAndAutoRefresh() {
             const now = Date.now();
             if (now - lastFetchedTimestamp >= 10 * 60 * 1000) {
@@ -728,11 +720,9 @@
                 listEl.appendChild(item);
             });
 
-            // 結果画面のプルダウンも同期更新
             updateResultLocationSelect();
         }
 
-        // 結果画面の地点切り替えプルダウンを生成・同期
         function updateResultLocationSelect() {
             const selectEl = document.getElementById('resultLocationSelect');
             if (!selectEl) return;
@@ -750,7 +740,6 @@
             selectEl.value = activeLocation;
         }
 
-        // プルダウン選択時の地点即時切り替え
         function handleResultLocationSelect(newLocation) {
             if (!newLocation || newLocation === activeLocation) return;
             activeLocation = newLocation;
@@ -816,8 +805,9 @@
 
         function closeResult() {
             const resultBox = document.getElementById('resultBox');
+            const mainContainer = document.getElementById('mainScreenContainer');
             if (resultBox) resultBox.classList.add('hidden');
-            // トップ画面に戻ったことを記録
+            if (mainContainer) mainContainer.classList.remove('hidden');
             localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'main');
         }
 
@@ -883,7 +873,6 @@
             return `${y}-${m}-${d}`;
         }
 
-        // 画像に合わせたモダンな天気アウトラインSVGアイコン
         function renderWeatherSvgIcon(weatherText) {
             const isRain = weatherText.includes('雨');
             const isSnow = weatherText.includes('雪');
@@ -891,14 +880,12 @@
             const isCloudy = weatherText.includes('曇');
             const isClear = weatherText.includes('晴') && !isCloudy && !isRain;
 
-            // 曇り（画像と同じソフトな雲の太線アウトライン）
             const cloudPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-[#c4c7cc] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.04));">
                     <path d="M 28 68 L 74 68 C 82 68 88 62 88 54 C 88 47 83 41 76 40 C 75 28 65 20 52 20 C 41 20 32 27 30 37 C 22 38 16 44 16 52 C 16 61 22 68 28 68 Z" />
                 </svg>
             `;
 
-            // 快晴（太陽アウトライン）
             const sunPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-[#ff9500] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round">
                     <circle cx="50" cy="50" r="20" stroke-width="7" />
@@ -913,7 +900,6 @@
                 </svg>
             `;
 
-            // 晴れ時々曇り / 曇り時々晴れ
             const sunCloudPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
                     <circle cx="68" cy="34" r="14" class="stroke-[#ff9500] fill-none stroke-[6]" />
@@ -925,7 +911,6 @@
                 </svg>
             `;
 
-            // 雨
             const rainPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 58 L 74 58 C 82 58 88 52 88 44 C 88 37 83 31 76 30 C 75 19 65 12 52 12 C 41 12 32 19 30 29 C 22 30 16 36 16 44 C 16 52 22 58 28 58 Z" 
@@ -936,7 +921,6 @@
                 </svg>
             `;
 
-            // 雷雨
             const thunderPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 54 L 74 54 C 82 54 88 48 88 41 C 88 34 83 29 76 28 C 75 17 65 10 52 10 C 41 10 32 17 30 27 C 22 28 16 34 16 41 C 16 49 22 54 28 54 Z" 
@@ -945,7 +929,6 @@
                 </svg>
             `;
 
-            // 雪
             const snowPath = `
                 <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 56 L 74 56 C 82 56 88 50 88 43 C 88 36 83 31 76 30 C 75 19 65 12 52 12 C 41 12 32 19 30 28 C 22 29 16 35 16 43 C 16 51 22 56 28 56 Z" 
@@ -961,7 +944,7 @@
             if (isSnow) return snowPath;
             if (isClear) return sunPath;
             if (weatherText.includes('晴') && isCloudy) return sunCloudPath;
-            return cloudPath; // デフォルトは画像と同じくもり
+            return cloudPath;
         }
 
         function initPullToRefresh() {
@@ -1058,14 +1041,13 @@
             }
         }
 
-        // 左右スワイプによる「今日」「明日」の切り替え検知
         function initSwipeDaySwitcher() {
             let touchStartX = 0;
             let touchStartY = 0;
             let touchStartTime = 0;
-            const SWIPE_THRESHOLD = 45; // スワイプと判定する最小水平距離(px)
-            const RESTRAINT = 80;       // 縦方向の最大許容移動量(px)
-            const MAX_TIME = 600;       // スワイプ判定の最大所要時間(ms)
+            const SWIPE_THRESHOLD = 45;
+            const RESTRAINT = 80;
+            const MAX_TIME = 600;
 
             const handleTouchStart = (e) => {
                 if (e.touches && e.touches.length === 1) {
@@ -1085,13 +1067,11 @@
                 const diffX = touchEndX - touchStartX;
                 const diffY = touchEndY - touchStartY;
 
-                // 水平方向の動きが主であり、斜め・縦スクロールではない場合に判定
                 if (elapsedTime <= MAX_TIME && Math.abs(diffX) >= SWIPE_THRESHOLD && Math.abs(diffY) <= RESTRAINT) {
                     const resultBox = document.getElementById('resultBox');
                     const isResultVisible = resultBox && !resultBox.classList.contains('hidden');
 
                     if (diffX < 0) {
-                        // 左スワイプ（指を右から左へ） -> 「明日」へ進む
                         if (selectedDay === 'today') {
                             if (isResultVisible) {
                                 switchResultDay('tomorrow');
@@ -1100,7 +1080,6 @@
                             }
                         }
                     } else {
-                        // 右スワイプ（指を左から右へ） -> 「今日」へ戻る
                         if (selectedDay === 'tomorrow') {
                             if (isResultVisible) {
                                 switchResultDay('today');
@@ -1112,7 +1091,6 @@
                 }
             };
 
-            // 結果画面とメイン画面の双方で左右スワイプを有効化
             const resultBox = document.getElementById('resultBox');
             if (resultBox) {
                 resultBox.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -1127,22 +1105,20 @@
             const btn = document.getElementById('checkBtn');
             const loading = document.getElementById('loading');
             const resultBox = document.getElementById('resultBox');
+            const mainContainer = document.getElementById('mainScreenContainer');
             const errorBox = document.getElementById('errorBox');
-            const resultBadge = document.getElementById('resultLocationBadge');
             const jmaOverviewTitle = document.getElementById('jmaOverviewTitle');
             const jmaReportTimeBadge = document.getElementById('jmaReportTimeBadge');
             const resultScroll = document.getElementById('resultScrollContainer');
 
             const targetLocation = activeLocation || '東京都品川区';
 
-            if (resultBadge) resultBadge.innerText = targetLocation;
             updateResultLocationSelect();
 
             if (!isPullRefresh) {
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'pointer-events-none');
                 loading.classList.remove('hidden');
-                resultBox.classList.add('hidden');
                 errorBox.classList.add('hidden');
             }
 
@@ -1151,14 +1127,13 @@
                 const areaCode = areaInfo.code;
                 const coords = { lat: areaInfo.lat, lon: areaInfo.lon };
 
-                const yesterdayStr = getYesterdayDateString();
                 const todayStr = getTodayDateString();
                 const tomorrowStr = getTomorrowDateString();
 
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -1193,21 +1168,8 @@
                     meteoData = await meteoRes.json();
                 }
 
-                // 週間天気リストを描画（画像デザイン・概況なし）
                 renderWeeklyList(meteoData, jmaData);
 
-                // 前日（昨日）のOpen-Meteo気温データ
-                let yesterdayMax = null;
-                let yesterdayMin = null;
-                if (meteoData?.daily?.time) {
-                    const yIdx = meteoData.daily.time.indexOf(yesterdayStr);
-                    if (yIdx !== -1) {
-                        yesterdayMax = meteoData.daily.temperature_2m_max?.[yIdx] !== undefined ? Math.round(meteoData.daily.temperature_2m_max[yIdx]) : null;
-                        yesterdayMin = meteoData.daily.temperature_2m_min?.[yIdx] !== undefined ? Math.round(meteoData.daily.temperature_2m_min[yIdx]) : null;
-                    }
-                }
-
-                // 今日・明日のデータ解析
                 const parseDayData = (dateStr, fallbackIdx, labelPrefix) => {
                     let weatherText = 'くもり';
                     let windText = '北寄りの風';
@@ -1221,9 +1183,8 @@
                     let noonTemp = null;
                     let nightTemp = null;
                     let dailyMaxPop = null;
-                    let pop6h = [null, null, null, null]; // 0-6時, 6-12時, 12-18時, 18-24時
+                    let pop6h = [null, null, null, null];
 
-                    // 日付フォーマット: "今日 10/2 (金)" 形式
                     const dObj = new Date(dateStr + 'T00:00:00');
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     targetDateFormatted = `${labelPrefix} ${dObj.getMonth() + 1}/${dObj.getDate()} (${days[dObj.getDay()]})`;
@@ -1245,7 +1206,6 @@
                             windText = area.winds[targetIdx].replace(/\s+/g, ' ').trim();
                         }
 
-                        // 降水確率（気象庁の6時間枠）
                         const popSeries = jmaData[0]?.timeSeries?.[1];
                         const popArea = popSeries?.areas?.[0];
                         const popDefines = popSeries?.timeDefines || [];
@@ -1265,7 +1225,6 @@
                             });
                         }
 
-                        // 気温
                         const tempSeries = jmaData[0]?.timeSeries?.[2];
                         const tempArea = tempSeries?.areas?.[0];
                         const tempDefines = tempSeries?.timeDefines || [];
@@ -1279,7 +1238,6 @@
                             }
                         });
 
-                        // 週間予報テーブル補完
                         if ((minTemp === null || maxTemp === null) && jmaData[1]?.timeSeries?.[1]) {
                             const weekArea = jmaData[1].timeSeries[1].areas?.[0];
                             const weekDefines = jmaData[1].timeSeries[1].timeDefines || [];
@@ -1291,7 +1249,6 @@
                         }
                     }
 
-                    // Open-Meteo補完
                     const daily = meteoData?.daily;
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
@@ -1311,7 +1268,6 @@
                         }
                     }
 
-                    // Open-Meteo Hourlyからピンポイント実測気温（8時、14時、20時）および6時間毎降水確率補完
                     const hourly = meteoData?.hourly;
                     if (hourly && Array.isArray(hourly.time)) {
                         const mMorningIdx = hourly.time.indexOf(`${dateStr}T08:00`);
@@ -1328,7 +1284,6 @@
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
-                        // 8時〜17時の体感温度平均
                         let daytimeApparentTemps = [];
                         for (let h = 8; h <= 17; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
@@ -1343,7 +1298,6 @@
                             apparentTemp = Math.round(sum / daytimeApparentTemps.length);
                         }
 
-                        // 6時間毎の降水確率の補完
                         const slotRanges = [
                             { start: 0, end: 5, index: 0 },
                             { start: 6, end: 11, index: 1 },
@@ -1378,7 +1332,6 @@
                     if (nightTemp === null) nightTemp = minTemp + 3;
                     if (dailyMaxPop === null) dailyMaxPop = 10;
 
-                    // 未取得枠の安全フォールバック
                     pop6h = pop6h.map(p => (p !== null ? p : dailyMaxPop));
 
                     return {
@@ -1413,9 +1366,11 @@
                 if (!isPullRefresh && resultScroll) {
                     resultScroll.scrollTop = 0;
                 }
+
+                // 背面のメイン画面を非表示にして結果画面を表示（透けとブラー干渉を完全に防ぐ）
+                if (mainContainer) mainContainer.classList.add('hidden');
                 resultBox.classList.remove('hidden');
 
-                // 結果画面を表示中であることを保存
                 localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'result');
                 localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
 
@@ -1433,7 +1388,6 @@
             }
         }
 
-        // 画像レイアウトに合わせたレンダリング
         function renderForecastView(data) {
             if (!data) return;
 
@@ -1472,23 +1426,13 @@
                 pop6h
             } = data;
 
-            // 1. 日付「今日 10/2 (金)」
             if (dateEl) dateEl.innerText = targetDateFormatted;
-
-            // 2. 大きな天気SVGアイコン
             if (iconEl) iconEl.innerHTML = renderWeatherSvgIcon(weatherText);
-
-            // 3. 天気名（画像の「くもり」など）
             if (weatherTextEl) weatherTextEl.innerText = weatherText;
-
-            // 4. 最高気温・最低気温
             if (maxTempEl) maxTempEl.innerText = maxTemp;
             if (minTempEl) minTempEl.innerText = minTemp;
-
-            // 5. 気温のすぐ下に体感温度を表示
             if (apparentTempEl) apparentTempEl.innerText = `${apparentTemp}℃`;
 
-            // 7. 6時間ごとの降水確率
             if (pop6h && pop6h.length === 4) {
                 if (popSlot0) popSlot0.innerText = `${pop6h[0]}%`;
                 if (popSlot1) popSlot1.innerText = `${pop6h[1]}%`;
@@ -1496,7 +1440,6 @@
                 if (popSlot3) popSlot3.innerText = `${pop6h[3]}%`;
             }
 
-            // サブ情報（フォントサイズを15pxに拡大）
             const windDesc = getWindStateLabel(maxWindSpeed);
             if (subWindSpeed) subWindSpeed.innerText = `💨 約 ${maxWindSpeed} m/s`;
             if (subWindDirection) {
@@ -1504,7 +1447,6 @@
                 subWindDirection.innerText = `${baseWind} (${windDesc})`;
             }
 
-            // 服装判定
             const outfit = evaluateClothingByCriteria(apparentTemp);
             if (criteriaBadge) criteriaBadge.innerText = outfit.label;
             if (outfitSec) {
@@ -1520,7 +1462,6 @@
                 `;
             }
 
-            // 朝・昼・夜のタイムライン（文字色を濃いグレーに）
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
@@ -1562,7 +1503,6 @@
             }
         }
 
-        // 画像スタイルのリスト用ミニSVGアイコン生成
         function renderWeeklyListIcon(weatherCode, weatherText = '') {
             const isRain = weatherText.includes('雨') || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
             const isSnow = weatherText.includes('雪') || (weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86);
@@ -1592,11 +1532,9 @@
                 `;
             }
 
-            // 曇りのち晴れ / 曇り時々晴れ（グレーの雲の手前または奥に太陽）
             if (isSunCloud) {
                 return `
                     <svg viewBox="0 0 42 32" class="w-8 h-7">
-                        <!-- 太陽（オレンジ） -->
                         <circle cx="26" cy="13" r="6" fill="#ff7a00" />
                         <g stroke="#ff7a00" stroke-width="2" stroke-linecap="round">
                             <line x1="26" y1="3" x2="26" y2="5" />
@@ -1608,7 +1546,6 @@
                             <line x1="19" y1="20" x2="20.5" y2="18.5" />
                             <line x1="31.5" y1="7.5" x2="33" y2="6" />
                         </g>
-                        <!-- 雲（画像通りの白い輪郭 または グレー） -->
                         <path d="M10 24 L24 24 C28 24 30.5 21.5 30.5 18 C30.5 14.8 28 12.5 24.5 12 C24 8.5 20.8 6 17 6 C13 6 9.8 8.8 9.2 12.5 C6.2 13 4 15.5 4 18.5 C4 22 7 24 10 24 Z" 
                               fill="#ffffff" stroke="#c0c4cc" stroke-width="2.5" stroke-linejoin="round" />
                     </svg>
@@ -1633,7 +1570,6 @@
                 `;
             }
 
-            // 画像の「4 (日)」のようなくもり単体のアウトライン
             return `
                 <svg viewBox="0 0 40 32" class="w-8 h-7">
                     <path d="M11 23 L28 23 C32.5 23 35.5 20 35.5 16 C35.5 12.2 32.5 9.5 28.5 9 C28 5 24 2.5 19.5 2.5 C15 2.5 11.2 5.5 10.5 9.8 C7 10.2 4.5 13 4.5 16.5 C4.5 20.5 7.8 23 11 23 Z" 
@@ -1642,7 +1578,6 @@
             `;
         }
 
-        // 画像デザイン完全再現：週間天気リスト描画
         function renderWeeklyList(meteoData, jmaData) {
             const listContainer = document.getElementById('weeklyForecastList');
             if (!listContainer) return;
@@ -1656,7 +1591,6 @@
             const meteoDaily = meteoData?.daily;
             const tomorrowStr = getTomorrowDateString();
 
-            // 明日から7日〜8日分の日付配列
             const targetDates = [];
             const baseTime = new Date(tomorrowStr + 'T00:00:00');
             for (let i = 0; i < 8; i++) {
@@ -1675,18 +1609,17 @@
                 const dayIndex = d.getDay();
                 const dayText = dayNames[dayIndex];
 
-                // 曜日カラー（日: 赤、土: 青、平日: 濃いグレー）
                 let dayColorClass = 'text-[#374151]';
                 if (dayIndex === 0) {
-                    dayColorClass = 'text-[#e03131]'; // 日曜
+                    dayColorClass = 'text-[#e03131]';
                 } else if (dayIndex === 6) {
-                    dayColorClass = 'text-[#007aff]'; // 土曜
+                    dayColorClass = 'text-[#007aff]';
                 }
 
                 let maxT = null;
                 let minT = null;
                 let pop = null;
-                let reliability = 'A'; // 信頼度デフォルト
+                let reliability = 'A';
                 let weatherCode = null;
 
                 const jmaWIdx = jmaWeatherTimes.findIndex(t => t.startsWith(dateStr));
@@ -1710,7 +1643,6 @@
                     }
                 }
 
-                // Open-Meteoで補完
                 if (meteoDaily && Array.isArray(meteoDaily.time)) {
                     const mIdx = meteoDaily.time.indexOf(dateStr);
                     if (mIdx !== -1) {
@@ -1741,18 +1673,15 @@
 
                 return `
                     <div class="flex items-center justify-between py-2.5 px-2 hover:bg-[#f8f9fa] transition-colors whitespace-nowrap">
-                        <!-- 日付と曜日: 例 4 (日) / 10 (土) -->
                         <div class="flex items-center gap-1 shrink-0 font-medium whitespace-nowrap min-w-[64px]">
                             <span class="text-[17px] font-bold text-[#1c1c1e] min-w-[24px] text-right font-mono whitespace-nowrap leading-none">${dateNum}</span>
                             <span class="text-[16px] font-bold ${dayColorClass} whitespace-nowrap leading-none">(${dayText})</span>
                         </div>
 
-                        <!-- 天気アイコン -->
                         <div class="w-[36px] flex items-center justify-center shrink-0">
                             ${iconSvg}
                         </div>
 
-                        <!-- 気温: 24℃ 16℃ -->
                         <div class="flex items-baseline justify-end gap-3 text-[18px] font-bold font-mono tracking-tight shrink-0 min-w-[96px] whitespace-nowrap">
                             <div class="text-[#e03131]">
                                 <span>${displayMax}</span><span class="text-[12px] font-normal">℃</span>
@@ -1762,12 +1691,10 @@
                             </div>
                         </div>
 
-                        <!-- 降水確率: 10% -->
                         <div class="w-[45px] text-right text-[15px] font-bold text-[#374151] font-mono shrink-0 whitespace-nowrap">
                             ${displayPop}
                         </div>
 
-                        <!-- 信頼度マーク: Ⓐ, Ⓑ, Ⓒ -->
                         <div class="w-[24px] flex items-center justify-end shrink-0">
                             <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">
                                 ${reliability}
