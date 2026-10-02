@@ -25,25 +25,19 @@
             overflow: hidden;
         }
 
-        /* iOSショートカット上部のすりガラス帯（約50〜54px）を回避する安全余白 */
-        .ios-shortcut-safe-top {
-            padding-top: max(env(safe-area-inset-top, 20px), 54px);
+        /* セーフエリア上部余白に+10pxを追加設定 */
+        .safe-area-top {
+            padding-top: calc(env(safe-area-inset-top, 16px) + 10px);
         }
 
         .safe-area-bottom {
-            padding-bottom: max(env(safe-area-inset-bottom, 16px), 20px);
+            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         .text-wrap-optimal {
             word-break: auto-phrase;
             overflow-wrap: anywhere;
             line-break: strict;
-        }
-
-        .ios-btn {
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
         }
 
         .ios-btn:active {
@@ -82,6 +76,9 @@
         #ptrContainer.ptr-dragging {
             transition: none;
         }
+        .ptr-icon-spin {
+            animation: spin 0.75s linear infinite;
+        }
 
         /* スクロールバーのスリムスタイリング */
         ::-webkit-scrollbar {
@@ -100,11 +97,11 @@
 <body class="bg-[#f2f2f7] select-none text-[14px]">
 
     <!-- ==================== 画面1: 地点管理・設定画面（メイン設定画面） ==================== -->
-    <div id="mainScreenContainer" class="hidden w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 ios-shortcut-safe-top safe-area-bottom overflow-y-auto">
+    <div id="mainScreenContainer" class="hidden w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 safe-area-top safe-area-bottom overflow-y-auto">
         
         <!-- Header -->
         <header class="pt-2 pb-1 text-center relative">
-            <button type="button" onclick="toggleSettingsModal(true)" class="ios-btn absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
+            <button type="button" onclick="toggleSettingsModal(true)" class="absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
                 ⚙️
             </button>
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
@@ -197,18 +194,14 @@
         <!-- Error Card -->
         <div id="errorBox" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed text-wrap-optimal shadow-sm"></div>
 
-        <!-- Minimal Footer -->
-        <footer class="text-center py-2 mt-auto">
-            <p class="text-[13px] text-[#8e8e93] font-medium tracking-wide">KYOWA ROOF</p>
-        </footer>
     </div>
 
     <!-- ==================== 画面2: 天気・服装予報画面（独立ビュー） ==================== -->
     <div id="forecastScreenContainer" class="flex-1 flex flex-col bg-[#f2f2f7] safe-area-bottom h-full overflow-hidden">
         
-        <!-- Navigation Bar: iOSショートカットのすりガラス帯を確実に回避する白背景ヘッダー -->
-        <div class="w-full bg-white border-b border-[#e5e5ea] shadow-xs ios-shortcut-safe-top shrink-0">
-            <div class="max-w-sm mx-auto flex items-center justify-between px-3.5 pt-1.5 pb-2.5 gap-2">
+        <!-- Navigation Bar: iOSステータスバー上部に+10pxの余白を設けた一体化バー -->
+        <div class="w-full bg-white border-b border-[#e5e5ea] shadow-xs safe-area-top shrink-0">
+            <div class="max-w-sm mx-auto flex items-center justify-between px-3.5 py-2.5 gap-2">
                 <!-- 登録地点切り替えプルダウン -->
                 <div class="relative flex items-center flex-1 max-w-[240px]">
                     <span class="absolute left-2.5 pointer-events-none text-[14px]">📍</span>
@@ -412,7 +405,7 @@
         <div class="bg-white border border-[#e5e5ea] rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-4">
             <div class="flex items-center justify-between">
                 <h3 class="text-[17px] font-bold text-[#1c1c1e]">⚙️ API詳細設定（任意）</h3>
-                <button type="button" onclick="toggleSettingsModal(false)" class="ios-btn text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
+                <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
             </div>
             <p class="text-[14px] text-[#4b5563] leading-relaxed">
                 標準状態で登録不要の気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
@@ -427,8 +420,8 @@
                 >
             </div>
             <div class="flex gap-2">
-                <button type="button" onclick="saveApiKeySettings()" class="ios-btn flex-1 bg-[#007aff] hover:bg-[#0062cc] text-white py-2 rounded-xl text-[14px] font-semibold transition-colors shadow-sm">保存する</button>
-                <button type="button" onclick="toggleSettingsModal(false)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#4b5563] px-4 py-2 rounded-xl text-[14px] transition-colors border border-[#d1d1d6]">キャンセル</button>
+                <button type="button" onclick="saveApiKeySettings()" class="flex-1 bg-[#007aff] hover:bg-[#0062cc] text-white py-2 rounded-xl text-[14px] font-semibold transition-colors shadow-sm">保存する</button>
+                <button type="button" onclick="toggleSettingsModal(false)" class="bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#4b5563] px-4 py-2 rounded-xl text-[14px] transition-colors border border-[#d1d1d6]">キャンセル</button>
             </div>
         </div>
     </div>
@@ -724,7 +717,7 @@
 
                 const textBtn = document.createElement('button');
                 textBtn.type = 'button';
-                textBtn.className = 'ios-btn flex-1 text-left flex items-center gap-2 text-[14px] font-medium outline-none truncate';
+                textBtn.className = 'flex-1 text-left flex items-center gap-2 text-[14px] font-medium outline-none truncate';
                 textBtn.innerHTML = `
                     <span class="${isActive ? 'text-[#ff9500]' : 'text-transparent'} text-[14px] select-none font-bold">✓</span>
                     <span class="truncate ${isActive ? 'font-bold text-[#1c1c1e]' : ''}">${escapeHtml(loc)}</span>
@@ -1025,7 +1018,9 @@
                     isRefreshing = true;
                     ptrContainer.style.height = '48px';
                     ptrIcon.style.transform = 'rotate(0deg)';
-                    ptrIcon.innerHTML = `<div class="ios-loader w-4 h-4 border-2"></div>`;
+                    ptrIcon.innerHTML = `
+                        <div class="ios-loader w-4 h-4 border-2"></div>
+                    `;
                     ptrText.innerText = '最新データを更新中...';
 
                     try {
