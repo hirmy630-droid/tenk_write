@@ -236,14 +236,19 @@
 
                 <!-- Weather Details Section -->
                 <div class="bg-white rounded-2xl p-3 border border-[#e5e5ea] shadow-sm space-y-1.5">
-                    <div class="flex items-center justify-between border-b border-[#f2f2f7] pb-1.5">
-                        <div class="flex items-center gap-1.5">
-                            <span id="resultWeatherEmoji" class="text-xl">🌤</span>
-                            <span id="forecastHeaderTitle" class="text-[15px] font-bold text-[#1c1c1e]">予報</span>
+                    <!-- タイトル行を独立させて改行を防止 -->
+                    <div class="border-b border-[#f2f2f7] pb-1.5 space-y-1">
+                        <div>
+                            <h2 id="forecastHeaderTitle" class="text-[15px] font-bold text-[#1c1c1e] leading-tight">予報</h2>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <span id="forecastWindBadge" class="text-[12px] bg-cyan-50 text-cyan-700 font-bold px-2 py-0.5 rounded-full border border-cyan-200">💨 -- m/s</span>
-                            <span id="forecastApparentBadge" class="text-[13px] bg-orange-100/80 text-orange-600 font-bold px-2 py-0.5 rounded-full border border-orange-200">日中体感 --℃</span>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span id="resultWeatherEmoji" class="text-xl leading-none">🌤</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span id="forecastWindBadge" class="text-[12px] bg-cyan-50 text-cyan-700 font-bold px-2 py-0.5 rounded-full border border-cyan-200">💨 -- m/s</span>
+                                <span id="forecastApparentBadge" class="text-[13px] bg-orange-100/80 text-orange-600 font-bold px-2 py-0.5 rounded-full border border-orange-200">日中体感 --℃</span>
+                            </div>
                         </div>
                     </div>
                     <!-- 予報詳細テーブルコンテナ -->
@@ -266,9 +271,8 @@
                         <div class="flex items-center justify-between px-0.5">
                             <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
                                 <span>🕒</span>
-                                <span>朝・昼・夜の寒暖差対策（実測予測）</span>
+                                <span>朝・昼・夜の寒暖差</span>
                             </span>
-                            <span class="text-[11px] text-[#8e8e93]">Open-Meteo連動</span>
                         </div>
                         <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
                             <!-- JavaScriptで動的生成 -->
@@ -1164,7 +1168,7 @@
                         <span class="text-[#1c1c1e] font-bold text-right text-[15px]">${escapeHtml(weatherText)}</span>
                     </div>
                     <div class="flex justify-between py-1.5 border-b border-[#f2f2f7] items-center">
-                        <span class="text-[#6c6c70] text-[14px]">風速（風の強さ）</span>
+                        <span class="text-[#6c6c70] text-[14px]">風速</span>
                         <span class="text-cyan-700 font-mono font-bold text-[15px] flex items-center gap-1.5">
                             <span>💨 約 ${maxWindSpeed} m/s</span>
                             <span class="text-[12px] font-medium text-[#4b5563] bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-200">${windDesc}</span>
