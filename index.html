@@ -6,7 +6,7 @@
     <title>明日の服装予報</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#f2f2f7">
     <link rel="apple-touch-icon" href="icon-180.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,6 +17,12 @@
             -webkit-tap-highlight-color: transparent;
             word-break: keep-all;
             overflow-wrap: break-word;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .safe-area-top {
@@ -69,6 +75,9 @@
         #ptrContainer.ptr-dragging {
             transition: none;
         }
+        .ptr-icon-spin {
+            animation: spin 0.75s linear infinite;
+        }
 
         /* スクロールバーのスリムスタイリング */
         ::-webkit-scrollbar {
@@ -84,15 +93,15 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-[#f2f2f7] flex flex-col justify-between selection:bg-orange-500 selection:text-white text-[14px]">
+<body class="bg-[#f2f2f7] select-none text-[14px]">
 
-    <!-- Main Screen Container (結果表示時は非表示にして透けを防止) -->
-    <div id="mainScreenContainer" class="w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 safe-area-top safe-area-bottom">
+    <!-- ==================== 画面1: 地点管理・設定画面（メイン設定画面） ==================== -->
+    <div id="mainScreenContainer" class="hidden w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 safe-area-top safe-area-bottom overflow-y-auto">
         
-        <!-- iOS Style Light Header -->
+        <!-- Header -->
         <header class="pt-2 pb-1 text-center relative">
             <button type="button" onclick="toggleSettingsModal(true)" class="absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
-                ⚙
+                ⚙️
             </button>
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
@@ -164,12 +173,12 @@
             <button 
                 type="button"
                 id="checkBtn" 
-                onclick="getRecommendation(false)" 
+                onclick="showForecastView(false)" 
                 class="ios-btn w-full bg-gradient-to-r from-[#ff9500] to-[#ff6a3a] hover:brightness-105 active:scale-[0.98] text-white font-semibold text-[16px] h-12 rounded-xl shadow-md transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer touch-manipulation">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                 </svg>
-                <span id="checkBtnLabel">天気予報</span>
+                <span id="checkBtnLabel">天気予報を見る</span>
             </button>
 
             <!-- Loading State -->
@@ -185,19 +194,19 @@
         <div id="errorBox" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed text-wrap-optimal shadow-sm"></div>
 
         <!-- Minimal Footer -->
-        <footer class="text-center py-2">
-            <p class="text-[13px] text-[#4b5563] font-medium">気象庁公式データ ＆ Open-Meteo連携</p>
+        <footer class="text-center py-2 mt-auto">
+            <p class="text-[13px] text-[#8e8e93] font-medium tracking-wide">KYOWA ROOF</p>
         </footer>
     </div>
 
-    <!-- Fullscreen Result View (不透明背景・上部ブラーぼやけ解消) -->
-    <div id="resultBox" class="hidden fixed inset-0 z-50 bg-[#f2f2f7] flex flex-col safe-area-bottom">
+    <!-- ==================== 画面2: 天気・服装予報画面（独立ビュー） ==================== -->
+    <div id="forecastScreenContainer" class="flex-1 flex flex-col bg-[#f2f2f7] safe-area-bottom h-full overflow-hidden">
         
-        <!-- Navigation Bar: iOSのステータスバーまで白背景を伸ばしてぼやけ・透けを解消 -->
+        <!-- Navigation Bar: iOSステータスバーと一体化（完全不透明な白背景・ぼやけゼロ） -->
         <div class="w-full bg-white border-b border-[#e5e5ea] shadow-xs safe-area-top shrink-0">
-            <div class="max-w-sm mx-auto flex items-center justify-between px-3 py-2 gap-2">
+            <div class="max-w-sm mx-auto flex items-center justify-between px-3.5 py-2.5 gap-2">
                 <!-- 登録地点切り替えプルダウン -->
-                <div class="relative flex items-center flex-1 max-w-[220px]">
+                <div class="relative flex items-center flex-1 max-w-[240px]">
                     <span class="absolute left-2.5 pointer-events-none text-[14px]">📍</span>
                     <select 
                         id="resultLocationSelect" 
@@ -208,13 +217,10 @@
                     <span class="absolute right-2 pointer-events-none text-[#4b5563] text-[11px]">▼</span>
                 </div>
 
-                <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="button" onclick="toggleOverviewModal(true)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] px-2.5 py-1.5 rounded-xl border border-[#d1d1d6] flex items-center gap-1 transition-all shadow-sm font-semibold">
+                <!-- 週間予報ボタン（「✕」ボタンは削除済み） -->
+                <div class="flex items-center shrink-0">
+                    <button type="button" onclick="toggleOverviewModal(true)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] px-3 py-1.5 rounded-xl border border-[#d1d1d6] flex items-center gap-1 transition-all shadow-sm font-semibold">
                         <span>📅 週間</span>
-                    </button>
-                    <!-- トップ画面に戻るボタン -->
-                    <button type="button" onclick="closeResult()" class="ios-btn text-[#4b5563] hover:text-[#1c1c1e] p-1.5 rounded-xl text-[16px] transition-colors" title="トップへ戻る">
-                        ✕
                     </button>
                 </div>
             </div>
@@ -255,7 +261,6 @@
 
             <!-- Weather Details Section -->
             <div class="bg-white rounded-2xl p-2.5 border border-[#e5e5ea] shadow-sm">
-                <!-- メイン表示エリア -->
                 <div class="flex flex-col items-center justify-center text-center pt-0.5 pb-1">
                     <!-- 日付表示 -->
                     <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">
@@ -282,7 +287,7 @@
                         </div>
                     </div>
 
-                    <!-- 体感温度表示 -->
+                    <!-- 気温の下の体感温度表示 -->
                     <div class="mt-1.5 text-center">
                         <span class="inline-flex items-center gap-1 text-[14px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
                             <span>体感温度:</span>
@@ -291,7 +296,7 @@
                     </div>
                 </div>
 
-                <!-- サブ情報エリア（6時間毎の降水確率・風速・風） -->
+                <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
                 <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
                     <div>
                         <div class="flex justify-between items-center mb-1">
@@ -317,6 +322,7 @@
                         </div>
                     </div>
 
+                    <!-- 風速・風の行 -->
                     <div class="flex justify-between items-center py-0.5">
                         <span class="text-[#374151] font-medium text-[14px]">風速</span>
                         <span id="subWindSpeed" class="text-cyan-700 font-mono font-bold text-[15px]">--</span>
@@ -358,12 +364,15 @@
                 </div>
             </div>
 
-            <!-- Bottom Back Button -->
-            <div class="pt-1 pb-4">
-                <button type="button" onclick="closeResult()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-10 rounded-xl border border-[#d1d1d6] shadow-sm transition-all flex items-center justify-center gap-1.5">
+            <!-- Bottom Back Button & Brand Logo (KYOWA ROOF) -->
+            <div class="pt-2 pb-6 flex flex-col items-center">
+                <button type="button" onclick="showMainScreen()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-11 rounded-xl border border-[#d1d1d6] shadow-xs transition-all flex items-center justify-center gap-1.5">
                     <span>📍</span>
-                    <span>登録地点検索へ戻る</span>
+                    <span>登録地点の追加・変更へ</span>
                 </button>
+                <p class="text-center text-[13px] text-[#8e8e93] font-semibold mt-3 tracking-wider select-none">
+                    KYOWA ROOF
+                </p>
             </div>
         </div>
     </div>
@@ -398,14 +407,14 @@
     <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white border border-[#e5e5ea] rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-4">
             <div class="flex items-center justify-between">
-                <h3 class="text-[17px] font-bold text-[#1c1c1e]">⚙️ 設定（任意）</h3>
+                <h3 class="text-[17px] font-bold text-[#1c1c1e]">⚙️ API詳細設定（任意）</h3>
                 <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
             </div>
             <p class="text-[14px] text-[#4b5563] leading-relaxed">
-                気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
+                標準状態で登録不要の気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
             </p>
             <div>
-                <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（任意）</label>
+                <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（設定すると高度な助言を追加可能）</label>
                 <input 
                     type="password" 
                     id="userApiKey" 
@@ -424,7 +433,6 @@
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_ACTIVE = 'weather_checker_active_location';
         const STORAGE_KEY_API_KEY = 'weather_checker_gemini_key';
-        const STORAGE_KEY_VIEW_STATE = 'weather_checker_last_view_state';
         const STORAGE_KEY_SELECTED_DAY = 'weather_checker_selected_day';
         const DEFAULT_LOCATIONS = ['東京都品川区'];
 
@@ -504,7 +512,6 @@
             '那覇':   { code: '471000', lat: 26.2124, lon: 127.6809 }
         };
 
-        // 指定された手持ち服リスト＆体感温度による判定基準
         function evaluateClothingByCriteria(apparentTemp) {
             let label = '';
             let jacket = '';
@@ -549,10 +556,10 @@
 
         let locations = [];
         let activeLocation = '東京都品川区';
-        let selectedDay = 'tomorrow'; // 'today' | 'tomorrow'
-        let cachedForecastData = null; // 今日・明日のデータを保持して即時切り替え
+        let selectedDay = 'tomorrow';
+        let cachedForecastData = null;
         let lastFetchedTimestamp = 0;
-        let isRefreshing = false; // 二重更新ガード
+        let isRefreshing = false;
 
         function setTargetDay(day) {
             selectedDay = day;
@@ -574,8 +581,6 @@
             
             const mToday = document.getElementById('mainTabToday');
             const mTomorrow = document.getElementById('mainTabTomorrow');
-            const checkLabel = document.getElementById('checkBtnLabel');
-            
             if (mToday && mTomorrow) {
                 if (isToday) {
                     mToday.className = 'ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm';
@@ -597,10 +602,26 @@
                     resToday.className = 'ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563]';
                 }
             }
+        }
 
-            if (checkLabel) {
-                checkLabel.innerText = '天気予報';
-            }
+        function showForecastView(isPullRefresh = false) {
+            const mainContainer = document.getElementById('mainScreenContainer');
+            const forecastContainer = document.getElementById('forecastScreenContainer');
+
+            // 物理的にメイン画面を消し、予報画面のみを表示
+            if (mainContainer) mainContainer.classList.add('hidden');
+            if (forecastContainer) forecastContainer.classList.remove('hidden');
+
+            return fetchForecastData(isPullRefresh);
+        }
+
+        function showMainScreen() {
+            const mainContainer = document.getElementById('mainScreenContainer');
+            const forecastContainer = document.getElementById('forecastScreenContainer');
+
+            // 予報画面を消し、メイン画面を表示
+            if (forecastContainer) forecastContainer.classList.add('hidden');
+            if (mainContainer) mainContainer.classList.remove('hidden');
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -615,22 +636,27 @@
             updateTabStyles();
             initPullToRefresh();
             initSwipeDaySwitcher();
+            
             const savedApiKey = localStorage.getItem(STORAGE_KEY_API_KEY);
             const keyInput = document.getElementById('userApiKey');
             if (savedApiKey && keyInput) {
                 keyInput.value = savedApiKey;
             }
 
-            // デフォルトで天気予報（結果画面）を自動起動
-            getRecommendation(false).catch(err => {
-                console.warn("Auto-start weather screen failed:", err);
+            // 初回起動時は予報画面を直接表示
+            showForecastView(false).catch(err => {
+                console.warn("Auto-start forecast failed:", err);
             });
         });
 
+        // 復帰時の自動再取得（10分以上経過時）
         function checkAndAutoRefresh() {
             const now = Date.now();
             if (now - lastFetchedTimestamp >= 10 * 60 * 1000) {
-                getRecommendation(true);
+                const forecastContainer = document.getElementById('forecastScreenContainer');
+                if (forecastContainer && !forecastContainer.classList.contains('hidden')) {
+                    fetchForecastData(true);
+                }
             }
         }
 
@@ -699,7 +725,10 @@
                     <span class="${isActive ? 'text-[#ff9500]' : 'text-transparent'} text-[14px] select-none font-bold">✓</span>
                     <span class="truncate ${isActive ? 'font-bold text-[#1c1c1e]' : ''}">${escapeHtml(loc)}</span>
                 `;
-                textBtn.onclick = () => selectLocation(loc);
+                textBtn.onclick = () => {
+                    selectLocation(loc);
+                    showForecastView(false);
+                };
 
                 const delBtn = document.createElement('button');
                 delBtn.type = 'button';
@@ -745,7 +774,7 @@
             activeLocation = newLocation;
             saveLocationsToStorage();
             renderLocations();
-            getRecommendation(false);
+            fetchForecastData(false);
         }
 
         function escapeHtml(str) {
@@ -801,14 +830,6 @@
 
             saveLocationsToStorage();
             renderLocations();
-        }
-
-        function closeResult() {
-            const resultBox = document.getElementById('resultBox');
-            const mainContainer = document.getElementById('mainScreenContainer');
-            if (resultBox) resultBox.classList.add('hidden');
-            if (mainContainer) mainContainer.classList.remove('hidden');
-            localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'main');
         }
 
         function toggleOverviewModal(show) {
@@ -1008,7 +1029,7 @@
                     ptrText.innerText = '最新データを更新中...';
 
                     try {
-                        await getRecommendation(true);
+                        await fetchForecastData(true);
                         ptrText.innerText = '更新完了';
                     } catch (err) {
                         ptrText.innerText = '更新失敗';
@@ -1068,44 +1089,28 @@
                 const diffY = touchEndY - touchStartY;
 
                 if (elapsedTime <= MAX_TIME && Math.abs(diffX) >= SWIPE_THRESHOLD && Math.abs(diffY) <= RESTRAINT) {
-                    const resultBox = document.getElementById('resultBox');
-                    const isResultVisible = resultBox && !resultBox.classList.contains('hidden');
-
                     if (diffX < 0) {
                         if (selectedDay === 'today') {
-                            if (isResultVisible) {
-                                switchResultDay('tomorrow');
-                            } else {
-                                setTargetDay('tomorrow');
-                            }
+                            switchResultDay('tomorrow');
                         }
                     } else {
                         if (selectedDay === 'tomorrow') {
-                            if (isResultVisible) {
-                                switchResultDay('today');
-                            } else {
-                                setTargetDay('today');
-                            }
+                            switchResultDay('today');
                         }
                     }
                 }
             };
 
-            const resultBox = document.getElementById('resultBox');
-            if (resultBox) {
-                resultBox.addEventListener('touchstart', handleTouchStart, { passive: true });
-                resultBox.addEventListener('touchend', handleTouchEnd, { passive: true });
+            const forecastScreen = document.getElementById('forecastScreenContainer');
+            if (forecastScreen) {
+                forecastScreen.addEventListener('touchstart', handleTouchStart, { passive: true });
+                forecastScreen.addEventListener('touchend', handleTouchEnd, { passive: true });
             }
-
-            document.body.addEventListener('touchstart', handleTouchStart, { passive: true });
-            document.body.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
 
-        async function getRecommendation(isPullRefresh = false) {
+        async function fetchForecastData(isPullRefresh = false) {
             const btn = document.getElementById('checkBtn');
             const loading = document.getElementById('loading');
-            const resultBox = document.getElementById('resultBox');
-            const mainContainer = document.getElementById('mainScreenContainer');
             const errorBox = document.getElementById('errorBox');
             const jmaOverviewTitle = document.getElementById('jmaOverviewTitle');
             const jmaReportTimeBadge = document.getElementById('jmaReportTimeBadge');
@@ -1115,11 +1120,11 @@
 
             updateResultLocationSelect();
 
-            if (!isPullRefresh) {
+            if (!isPullRefresh && btn && loading) {
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'pointer-events-none');
                 loading.classList.remove('hidden');
-                errorBox.classList.add('hidden');
+                if (errorBox) errorBox.classList.add('hidden');
             }
 
             try {
@@ -1133,7 +1138,7 @@
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -1367,20 +1372,15 @@
                     resultScroll.scrollTop = 0;
                 }
 
-                // 背面のメイン画面を非表示にして結果画面を表示（透けとブラー干渉を完全に防ぐ）
-                if (mainContainer) mainContainer.classList.add('hidden');
-                resultBox.classList.remove('hidden');
-
-                localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'result');
-                localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
-
             } catch (err) {
                 console.error("Forecast Error:", err);
-                errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
-                errorBox.classList.remove('hidden');
+                if (errorBox) {
+                    errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
+                    errorBox.classList.remove('hidden');
+                }
                 throw err;
             } finally {
-                if (!isPullRefresh) {
+                if (!isPullRefresh && btn && loading) {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'pointer-events-none');
                     loading.classList.add('hidden');
@@ -1506,7 +1506,6 @@
         function renderWeeklyListIcon(weatherCode, weatherText = '') {
             const isRain = weatherText.includes('雨') || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
             const isSnow = weatherText.includes('雪') || (weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86);
-            const isCloudyOnly = weatherText === 'くもり' || weatherText === '曇り' || weatherCode === 3;
             const isSunCloud = weatherText.includes('晴') && weatherText.includes('曇');
             const isClear = weatherText === '晴れ' || weatherCode === 0 || weatherCode === 1;
 
