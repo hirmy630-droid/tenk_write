@@ -235,26 +235,26 @@
                 </div>
 
                 <!-- Weather Details Section (画像スタイルに刷新) -->
-                <div class="bg-white rounded-2xl p-4 border border-[#e5e5ea] shadow-sm">
-                    <!-- 画像完全再現メイン表示エリア -->
-                    <div class="flex flex-col items-center justify-center text-center pt-1 pb-2">
+                <div class="bg-white rounded-2xl p-2.5 border border-[#e5e5ea] shadow-sm">
+                    <!-- 画像完全再現メイン表示エリア（余白を圧縮してコンパクト化） -->
+                    <div class="flex flex-col items-center justify-center text-center pt-0.5 pb-1">
                         <!-- 日付表示: 今日 10/2 (金) -->
-                        <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-3">
+                        <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">
                             --
                         </div>
 
                         <!-- 大きな天気アイコン -->
-                        <div id="imageStyleIcon" class="w-24 h-24 flex items-center justify-center my-1 select-none">
+                        <div id="imageStyleIcon" class="w-20 h-20 flex items-center justify-center my-0.5 select-none">
                             <!-- SVG動的描画 -->
                         </div>
 
                         <!-- 天気表示 -->
-                        <div class="flex items-center justify-center mt-2 mb-2">
+                        <div class="flex items-center justify-center mt-1 mb-1">
                             <span id="imageStyleWeatherText" class="text-[21px] font-bold text-[#1c1c1e]">--</span>
                         </div>
 
                         <!-- 最高気温 / 最低気温（前日比は非表示） -->
-                        <div class="flex items-baseline justify-center gap-6 text-[28px] font-bold mt-1 tracking-tight">
+                        <div class="flex items-baseline justify-center gap-6 text-[28px] font-bold mt-0.5 tracking-tight">
                             <!-- 最高気温 -->
                             <div class="text-[#e03131] flex items-baseline">
                                 <span id="imageStyleMaxTemp" class="leading-none">--</span><span class="text-[17px] font-normal leading-none">℃</span>
@@ -266,7 +266,7 @@
                         </div>
 
                         <!-- 気温の下の体感温度表示 -->
-                        <div class="mt-2 text-center">
+                        <div class="mt-1.5 text-center">
                             <span class="inline-flex items-center gap-1 text-[13px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
                                 <span>体感温度:</span>
                                 <span id="imageStyleApparentTemp" class="font-bold font-mono text-[14px]">--℃</span>
@@ -274,40 +274,40 @@
                         </div>
                     </div>
 
-                    <!-- サブ情報エリア（6時間置きの降水確率・風速・風の予報） -->
-                    <div class="mt-2.5 pt-2.5 border-t border-[#f2f2f7] space-y-2 text-[14px]">
-                        <!-- 6時間置きの降水確率表示 -->
+                    <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
+                    <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
+                        <!-- 6時間置きの降水確率表示（フォントサイズを2pt拡大） -->
                         <div>
                             <div class="flex justify-between items-center mb-1">
-                                <span class="text-[#6c6c70] text-[13px] font-medium">降水確率 (6時間毎)</span>
+                                <span class="text-[#6c6c70] text-[15px] font-medium">降水確率 (6時間毎)</span>
                             </div>
-                            <div id="subPop6hGrid" class="grid grid-cols-4 gap-1 text-center font-mono">
+                            <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
                                 <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-lg py-1">
-                                    <div class="text-[11px] text-[#8e8e93]">0-6時</div>
-                                    <div id="popSlot0" class="text-[13px] font-bold text-[#007aff]">--%</div>
+                                    <div class="text-[13px] text-[#8e8e93]">0-6時</div>
+                                    <div id="popSlot0" class="text-[15px] font-bold text-[#007aff]">--%</div>
                                 </div>
                                 <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-lg py-1">
-                                    <div class="text-[11px] text-[#8e8e93]">6-12時</div>
-                                    <div id="popSlot1" class="text-[13px] font-bold text-[#007aff]">--%</div>
+                                    <div class="text-[13px] text-[#8e8e93]">6-12時</div>
+                                    <div id="popSlot1" class="text-[15px] font-bold text-[#007aff]">--%</div>
                                 </div>
                                 <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-lg py-1">
-                                    <div class="text-[11px] text-[#8e8e93]">12-18時</div>
-                                    <div id="popSlot2" class="text-[13px] font-bold text-[#007aff]">--%</div>
+                                    <div class="text-[13px] text-[#8e8e93]">12-18時</div>
+                                    <div id="popSlot2" class="text-[15px] font-bold text-[#007aff]">--%</div>
                                 </div>
                                 <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-lg py-1">
-                                    <div class="text-[11px] text-[#8e8e93]">18-24時</div>
-                                    <div id="popSlot3" class="text-[13px] font-bold text-[#007aff]">--%</div>
+                                    <div class="text-[13px] text-[#8e8e93]">18-24時</div>
+                                    <div id="popSlot3" class="text-[15px] font-bold text-[#007aff]">--%</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="flex justify-between items-center py-0.5">
-                            <span class="text-[#6c6c70]">風速・状況</span>
+                            <span class="text-[#6c6c70]">風速</span>
                             <span id="subWindSpeed" class="text-cyan-700 font-mono font-bold text-[14px]">--</span>
                         </div>
                         <div class="flex justify-between items-center py-0.5">
-                            <span class="text-[#6c6c70]">風の予報</span>
-                            <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[210px] font-medium">--</span>
+                            <span class="text-[#6c6c70]">風</span>
+                            <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[230px] font-medium">--</span>
                         </div>
                     </div>
                 </div>
@@ -437,6 +437,8 @@
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_ACTIVE = 'weather_checker_active_location';
         const STORAGE_KEY_API_KEY = 'weather_checker_gemini_key';
+        const STORAGE_KEY_VIEW_STATE = 'weather_checker_last_view_state';
+        const STORAGE_KEY_SELECTED_DAY = 'weather_checker_selected_day';
         const DEFAULT_LOCATIONS = ['東京都品川区'];
 
         // 全国主要都市 気象庁府県予報区コード
@@ -567,11 +569,13 @@
 
         function setTargetDay(day) {
             selectedDay = day;
+            localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
             updateTabStyles();
         }
 
         function switchResultDay(day) {
             selectedDay = day;
+            localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
             updateTabStyles();
             if (cachedForecastData && cachedForecastData[selectedDay]) {
                 renderForecastView(cachedForecastData[selectedDay]);
@@ -617,12 +621,28 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadLocations();
             renderLocations();
+
+            // 直前に選択していた対象日（今日／明日）を復元
+            const savedDay = localStorage.getItem(STORAGE_KEY_SELECTED_DAY);
+            if (savedDay === 'today' || savedDay === 'tomorrow') {
+                selectedDay = savedDay;
+            }
+
             updateTabStyles();
             initPullToRefresh();
+            initSwipeDaySwitcher();
             const savedApiKey = localStorage.getItem(STORAGE_KEY_API_KEY);
             const keyInput = document.getElementById('userApiKey');
             if (savedApiKey && keyInput) {
                 keyInput.value = savedApiKey;
+            }
+
+            // 前回結果画面で終了していた場合、最新情報を自動取得して結果画面で起動
+            const lastViewState = localStorage.getItem(STORAGE_KEY_VIEW_STATE);
+            if (lastViewState === 'result') {
+                getRecommendation(false).catch(err => {
+                    console.warn("Auto-restore result screen failed:", err);
+                });
             }
         });
 
@@ -779,6 +799,8 @@
         function closeResult() {
             const resultBox = document.getElementById('resultBox');
             if (resultBox) resultBox.classList.add('hidden');
+            // トップ画面に戻ったことを記録
+            localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'main');
         }
 
         function toggleOverviewModal(show) {
@@ -1016,6 +1038,71 @@
                     ptrText.innerText = '下に引いて最新情報を更新';
                 }, 250);
             }
+        }
+
+        // 左右スワイプによる「今日」「明日」の切り替え検知
+        function initSwipeDaySwitcher() {
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            const SWIPE_THRESHOLD = 45; // スワイプと判定する最小水平距離(px)
+            const RESTRAINT = 80;       // 縦方向の最大許容移動量(px)
+            const MAX_TIME = 600;       // スワイプ判定の最大所要時間(ms)
+
+            const handleTouchStart = (e) => {
+                if (e.touches && e.touches.length === 1) {
+                    touchStartX = e.touches[0].screenX;
+                    touchStartY = e.touches[0].screenY;
+                    touchStartTime = Date.now();
+                }
+            };
+
+            const handleTouchEnd = (e) => {
+                if (!e.changedTouches || e.changedTouches.length === 0) return;
+
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                const elapsedTime = Date.now() - touchStartTime;
+
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+
+                // 水平方向の動きが主であり、斜め・縦スクロールではない場合に判定
+                if (elapsedTime <= MAX_TIME && Math.abs(diffX) >= SWIPE_THRESHOLD && Math.abs(diffY) <= RESTRAINT) {
+                    const resultBox = document.getElementById('resultBox');
+                    const isResultVisible = resultBox && !resultBox.classList.contains('hidden');
+
+                    if (diffX < 0) {
+                        // 左スワイプ（指を右から左へ） -> 「明日」へ進む
+                        if (selectedDay === 'today') {
+                            if (isResultVisible) {
+                                switchResultDay('tomorrow');
+                            } else {
+                                setTargetDay('tomorrow');
+                            }
+                        }
+                    } else {
+                        // 右スワイプ（指を左から右へ） -> 「今日」へ戻る
+                        if (selectedDay === 'tomorrow') {
+                            if (isResultVisible) {
+                                switchResultDay('today');
+                            } else {
+                                setTargetDay('today');
+                            }
+                        }
+                    }
+                }
+            };
+
+            // 結果画面とメイン画面の双方で左右スワイプを有効化
+            const resultBox = document.getElementById('resultBox');
+            if (resultBox) {
+                resultBox.addEventListener('touchstart', handleTouchStart, { passive: true });
+                resultBox.addEventListener('touchend', handleTouchEnd, { passive: true });
+            }
+
+            document.body.addEventListener('touchstart', handleTouchStart, { passive: true });
+            document.body.addEventListener('touchend', handleTouchEnd, { passive: true });
         }
 
         async function getRecommendation(isPullRefresh = false) {
@@ -1316,6 +1403,10 @@
                 }
                 resultBox.classList.remove('hidden');
 
+                // 結果画面を表示中であることを保存
+                localStorage.setItem(STORAGE_KEY_VIEW_STATE, 'result');
+                localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
+
             } catch (err) {
                 console.error("Forecast Error:", err);
                 errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
@@ -1395,8 +1486,11 @@
 
             // サブ情報
             const windDesc = getWindStateLabel(maxWindSpeed);
-            if (subWindSpeed) subWindSpeed.innerText = `💨 約 ${maxWindSpeed} m/s (${windDesc})`;
-            if (subWindDirection) subWindDirection.innerText = windText || '穏やか';
+            if (subWindSpeed) subWindSpeed.innerText = `💨 約 ${maxWindSpeed} m/s`;
+            if (subWindDirection) {
+                const baseWind = windText || '穏やか';
+                subWindDirection.innerText = `${baseWind} (${windDesc})`;
+            }
 
             // 服装判定
             const outfit = evaluateClothingByCriteria(apparentTemp);
