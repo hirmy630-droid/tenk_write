@@ -185,19 +185,28 @@
 
         <!-- Fullscreen Result View (Light) -->
         <div id="resultBox" class="hidden fixed inset-0 z-50 bg-[#f2f2f7]/95 backdrop-blur-xl flex flex-col safe-area-top safe-area-bottom">
-            <!-- Navigation Bar with Back Button & Overview Button -->
-            <div class="flex items-center justify-between px-4 py-2.5 border-b border-[#e5e5ea] bg-white/85 backdrop-blur-md shrink-0 shadow-sm">
-                <button type="button" onclick="closeResult()" class="ios-btn flex items-center gap-1 text-[#ff9500] font-semibold text-[16px] py-1 px-1 rounded-xl">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    <span>戻る</span>
-                </button>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="toggleOverviewModal(true)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] px-2.5 py-1 rounded-lg border border-[#d1d1d6] flex items-center gap-1 transition-all shadow-sm">
+            <!-- Navigation Bar with Location Selector Dropdown & Action Buttons -->
+            <div class="flex items-center justify-between px-3 py-2 border-b border-[#e5e5ea] bg-white/85 backdrop-blur-md shrink-0 shadow-sm gap-2">
+                <!-- 登録地点切り替えプルダウン -->
+                <div class="relative flex items-center flex-1 max-w-[220px]">
+                    <span class="absolute left-2.5 pointer-events-none text-[14px]">📍</span>
+                    <select 
+                        id="resultLocationSelect" 
+                        onchange="handleResultLocationSelect(this.value)" 
+                        class="w-full appearance-none bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] font-bold pl-7 pr-6 py-1.5 rounded-xl border border-[#d1d1d6] shadow-xs outline-none focus:border-[#ff9500] transition-all cursor-pointer truncate">
+                        <!-- JavaScriptで動的生成 -->
+                    </select>
+                    <span class="absolute right-2 pointer-events-none text-[#8e8e93] text-[11px]">▼</span>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" onclick="toggleOverviewModal(true)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] px-2.5 py-1.5 rounded-xl border border-[#d1d1d6] flex items-center gap-1 transition-all shadow-sm font-semibold">
                         <span>📅 週間</span>
                     </button>
-                    <span id="resultLocationBadge" class="text-[14px] bg-white text-[#1c1c1e] border border-[#d1d1d6] px-3 py-1 rounded-full font-semibold shadow-sm">東京都品川区</span>
+                    <!-- トップ画面に戻るボタン -->
+                    <button type="button" onclick="closeResult()" class="ios-btn text-[#8e8e93] hover:text-[#1c1c1e] p-1.5 rounded-xl text-[16px] transition-colors" title="トップへ戻る">
+                        ✕
+                    </button>
                 </div>
             </div>
 
@@ -344,8 +353,9 @@
 
                 <!-- Bottom Back Button -->
                 <div class="pt-1 pb-4">
-                    <button type="button" onclick="closeResult()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-10 rounded-xl border border-[#d1d1d6] shadow-sm transition-all flex items-center justify-center">
-                        閉じて戻る
+                    <button type="button" onclick="closeResult()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-10 rounded-xl border border-[#d1d1d6] shadow-sm transition-all flex items-center justify-center gap-1.5">
+                        <span>📍</span>
+                        <span>登録地点検索</span>
                     </button>
                 </div>
             </div>
@@ -637,13 +647,10 @@
                 keyInput.value = savedApiKey;
             }
 
-            // 前回結果画面で終了していた場合、最新情報を自動取得して結果画面で起動
-            const lastViewState = localStorage.getItem(STORAGE_KEY_VIEW_STATE);
-            if (lastViewState === 'result') {
-                getRecommendation(false).catch(err => {
-                    console.warn("Auto-restore result screen failed:", err);
-                });
-            }
+            // デフォルトで天気予報（結果画面）を自動起動
+            getRecommendation(false).catch(err => {
+                console.warn("Auto-start weather screen failed:", err);
+            });
         });
 
         // 復帰時の自動再取得（10分以上経過時）
@@ -739,6 +746,36 @@
                 item.appendChild(delBtn);
                 listEl.appendChild(item);
             });
+
+            // 結果画面のプルダウンも同期更新
+            updateResultLocationSelect();
+        }
+
+        // 結果画面の地点切り替えプルダウンを生成・同期
+        function updateResultLocationSelect() {
+            const selectEl = document.getElementById('resultLocationSelect');
+            if (!selectEl) return;
+
+            selectEl.innerHTML = '';
+            locations.forEach((loc) => {
+                const opt = document.createElement('option');
+                opt.value = loc;
+                opt.textContent = loc;
+                if (loc === activeLocation) {
+                    opt.selected = true;
+                }
+                selectEl.appendChild(opt);
+            });
+            selectEl.value = activeLocation;
+        }
+
+        // プルダウン選択時の地点即時切り替え
+        function handleResultLocationSelect(newLocation) {
+            if (!newLocation || newLocation === activeLocation) return;
+            activeLocation = newLocation;
+            saveLocationsToStorage();
+            renderLocations();
+            getRecommendation(false);
         }
 
         function escapeHtml(str) {
@@ -1119,6 +1156,7 @@
             const targetLocation = activeLocation || '東京都品川区';
 
             if (resultBadge) resultBadge.innerText = targetLocation;
+            updateResultLocationSelect();
 
             if (!isPullRefresh) {
                 btn.disabled = true;
