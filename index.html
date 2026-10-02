@@ -980,9 +980,6 @@
                         let mIdx = daily.time.indexOf(dateStr);
                         if (mIdx === -1) mIdx = fallbackIdx;
 
-                        if (daily.apparent_temperature_max?.[mIdx] !== undefined) {
-                            apparentTemp = Math.round(daily.apparent_temperature_max[mIdx]);
-                        }
                         if (minTemp === null && daily.temperature_2m_min?.[mIdx] !== undefined) {
                             minTemp = Math.round(daily.temperature_2m_min[mIdx]);
                         }
@@ -994,7 +991,7 @@
                         }
                     }
 
-                    // Open-Meteo Hourly（朝8時、昼14時、夜20時）の気温を抽出
+                    // Open-Meteo Hourly（朝8時〜夕方17時の体感温度を厳密に集計）
                     const hourly = meteoData?.hourly;
                     if (hourly && Array.isArray(hourly.time)) {
                         const mMorningIdx = hourly.time.indexOf(`${dateStr}T08:00`);
@@ -1009,6 +1006,21 @@
                         }
                         if (mNightIdx !== -1 && hourly.temperature_2m?.[mNightIdx] !== undefined) {
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
+                        }
+
+                        // 8時〜17時（計10時間）の体感温度を抽出して平均を算出
+                        let daytimeApparentTemps = [];
+                        for (let h = 8; h <= 17; h++) {
+                            const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
+                            const idx = hourly.time.indexOf(timeKey);
+                            if (idx !== -1 && hourly.apparent_temperature?.[idx] !== undefined) {
+                                daytimeApparentTemps.push(hourly.apparent_temperature[idx]);
+                            }
+                        }
+
+                        if (daytimeApparentTemps.length > 0) {
+                            const sum = daytimeApparentTemps.reduce((acc, cur) => acc + cur, 0);
+                            apparentTemp = Math.round(sum / daytimeApparentTemps.length);
                         }
                     }
 
@@ -1113,7 +1125,7 @@
                         <span class="text-[#007aff] font-mono font-bold text-[15px]">${popDisplay}</span>
                     </div>
                     <div class="flex justify-between py-1.5 items-center">
-                        <span class="text-[#6c6c70] text-[14px]">日中体感温度</span>
+                        <span class="text-[#6c6c70] text-[14px]">日中体感温度 (8時〜17時)</span>
                         <span class="text-orange-600 font-bold font-mono text-[15px]">${apparentTemp}℃</span>
                     </div>
                 `;
