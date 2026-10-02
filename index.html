@@ -265,11 +265,11 @@
                             </div>
                         </div>
 
-                        <!-- 気温の下の体感温度表示 -->
+                        <!-- 気温の下の体感温度表示（フォントサイズを1ポイント拡大） -->
                         <div class="mt-1.5 text-center">
-                            <span class="inline-flex items-center gap-1 text-[13px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
+                            <span class="inline-flex items-center gap-1 text-[14px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200/70">
                                 <span>体感温度:</span>
-                                <span id="imageStyleApparentTemp" class="font-bold font-mono text-[14px]">--℃</span>
+                                <span id="imageStyleApparentTemp" class="font-bold font-mono text-[15px]">--℃</span>
                             </span>
                         </div>
                     </div>
@@ -357,14 +357,14 @@
                 <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <span class="text-base">📅</span>
-                        <h3 id="jmaOverviewTitle" class="text-[15px] font-bold text-[#1c1c1e]">気象庁 週間天気予報</h3>
+                        <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e]">気象庁 週間天気予報</h3>
                     </div>
                     <span id="jmaReportTimeBadge" class="text-[12px] text-[#6c6c70] font-mono">--:-- 発表</span>
                 </div>
 
                 <!-- 7日間の週間天気予報カード（横スクロール対応） -->
                 <div class="shrink-0 space-y-1.5">
-                    <div class="text-[13px] font-semibold text-[#d97706] flex items-center justify-between">
+                    <div class="text-[15px] font-semibold text-[#d97706] flex items-center justify-between">
                         <span class="flex items-center gap-1">
                             <span>🌤</span>
                             <span>気象庁 週間予報（直近7日間）</span>
@@ -1699,18 +1699,18 @@
                 const displayEmoji = weatherEmoji || '🌤';
 
                 return `
-                    <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-xl p-1.5 flex flex-col items-center justify-between text-center shadow-xs w-[76px] shrink-0">
-                        <div class="text-[12px] text-[#8e8e93] font-mono leading-none pt-0.5">${month}/${date}</div>
-                        <div class="text-[13px] font-bold ${dayColorClass} leading-tight mb-0.5">(${dayText})</div>
-                        <div class="text-[22px] my-0.5 leading-none select-none">${displayEmoji}</div>
-                        <div class="flex items-center justify-center gap-1 text-[12px] font-mono font-bold leading-tight mt-0.5 whitespace-nowrap">
+                    <div class="bg-[#f8f9fa] border border-[#e5e5ea] rounded-xl p-1.5 flex flex-col items-center justify-between text-center shadow-xs w-[84px] shrink-0">
+                        <div class="text-[14px] text-[#8e8e93] font-mono leading-none pt-0.5">${month}/${date}</div>
+                        <div class="text-[15px] font-bold ${dayColorClass} leading-tight mb-0.5">(${dayText})</div>
+                        <div class="text-[24px] my-0.5 leading-none select-none">${displayEmoji}</div>
+                        <div class="flex items-center justify-center gap-1 text-[14px] font-mono font-bold leading-tight mt-0.5 whitespace-nowrap">
                             <span class="text-orange-600">${displayMax}</span>
                             <span class="text-[#007aff]">${displayMin}</span>
                         </div>
-                        <div class="text-[11px] text-[#007aff] font-semibold leading-tight mt-1 flex items-center justify-center gap-0.5">
+                        <div class="text-[13px] text-[#007aff] font-semibold leading-tight mt-1 flex items-center justify-center gap-0.5">
                             <span>💧</span><span>${displayPop}</span>
                         </div>
-                        <div class="text-[11px] text-[#6c6c70] font-medium leading-tight mt-0.5 flex items-center justify-center gap-0.5">
+                        <div class="text-[13px] text-[#6c6c70] font-medium leading-tight mt-0.5 flex items-center justify-center gap-0.5">
                             <span>💨</span><span>${windSpeedMs}m/s</span>
                         </div>
                     </div>
