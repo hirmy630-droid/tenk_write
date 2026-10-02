@@ -100,7 +100,7 @@
                 明日の服装予報
             </h1>
             <p id="headerSubtitle" class="text-[13px] text-[#6c6c70] mt-1 text-wrap-optimal font-normal">
-                気象庁公式 ＆ 8-17時平均体感温度連動
+                KYOWA ROOF
             </p>
         </header>
 
@@ -171,7 +171,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                 </svg>
-                <span id="checkBtnLabel">明日の服装・天気を判定</span>
+                <span id="checkBtnLabel">天気予報</span>
             </button>
 
             <!-- Loading State -->
@@ -312,7 +312,6 @@
                             <span>🌤</span>
                             <span>気象庁 週間予報（直近7日間）</span>
                         </span>
-                        <span class="text-[11px] text-[#6c6c70] font-normal">公式降水確率＆気温</span>
                     </div>
                     <!-- 横スクロールコンテナ -->
                     <div id="weeklyForecastScroll" class="flex gap-2 overflow-x-auto pb-1.5 pt-0.5 pr-0.5">
@@ -381,7 +380,7 @@
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_ACTIVE = 'weather_checker_active_location';
         const STORAGE_KEY_API_KEY = 'weather_checker_gemini_key';
-        const DEFAULT_LOCATIONS = ['東京都品川区', '横浜市中区', '大阪市北区'];
+        const DEFAULT_LOCATIONS = ['東京都品川区'];
 
         // 全国主要都市 気象庁府県予報区コード
         const PREFECTURE_MAP = {
@@ -554,7 +553,7 @@
             }
 
             if (checkLabel) {
-                checkLabel.innerText = isToday ? '今日の服装・天気を判定' : '明日の服装・天気を判定';
+                checkLabel.innerText = '天気予報';
             }
         }
 
