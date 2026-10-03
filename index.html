@@ -295,9 +295,14 @@
 
                 <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
                 <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
-                    <div>
+                    <!-- タップで1時間ごとの天気をポップアップ表示 -->
+                    <div onclick="openHourlyModal()" class="cursor-pointer active:opacity-75 transition-opacity group" title="タップして1時間ごとの天気を表示">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
+                            <span class="text-[#374151] text-[15px] font-bold flex items-center gap-1">
+                                <span>降水確率 (6時間毎)</span>
+                                <span class="text-[11px] text-[#007aff] font-normal group-hover:underline">詳細 ›</span>
+                            </span>
+                            <span class="text-[11px] text-[#8e8e93]">タップで1時間予報</span>
                         </div>
                         <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
@@ -378,15 +383,15 @@
     <div id="overviewModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
         <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[90vh]">
             <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
-                <div class="flex items-center gap-1.5">
-                    <span class="text-lg">📅</span>
-                    <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e]">週間天気予報</h3>
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-lg shrink-0">📅</span>
+                    <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e] truncate">--</h3>
                 </div>
-                <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium">--:-- 発表</span>
+                <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium shrink-0 ml-2">--:-- 発表</span>
             </div>
 
             <!-- 週間天気リスト -->
-            <div class="flex-1 overflow-y-auto pr-0.5">
+            <div class="flex-1 overflow-y-auto overflow-x-hidden pr-1">
                 <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
                     <!-- JavaScriptで動的生成 -->
                 </div>
@@ -394,6 +399,32 @@
 
             <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
                 <button type="button" onclick="toggleOverviewModal(false)" class="ios-btn w-full bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] font-semibold text-[15px] py-2 rounded-xl border border-[#d1d1d6] shadow-sm">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1時間ごとの天気ポップアップモーダル（軽量・即時表示） -->
+    <div id="hourlyModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
+        <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-lg shrink-0">⏱️</span>
+                    <h3 id="hourlyModalTitle" class="text-[16px] font-bold text-[#1c1c1e] truncate">1時間ごとの天気</h3>
+                </div>
+                <span id="hourlyModalDate" class="text-[13px] text-[#4b5563] font-semibold">--</span>
+            </div>
+
+            <!-- 1時間ごとのリスト -->
+            <div class="flex-1 overflow-y-auto pr-1">
+                <div id="hourlyList" class="divide-y divide-[#f2f2f7]">
+                    <!-- JavaScriptで動的生成 -->
+                </div>
+            </div>
+
+            <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
+                <button type="button" onclick="toggleHourlyModal(false)" class="ios-btn w-full bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] font-semibold text-[15px] py-2 rounded-xl border border-[#d1d1d6] shadow-sm">
                     閉じる
                 </button>
             </div>
@@ -846,6 +877,58 @@
             }
         }
 
+        function toggleHourlyModal(show) {
+            const modal = document.getElementById('hourlyModal');
+            if (!modal) return;
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function openHourlyModal() {
+            if (!cachedForecastData || !cachedForecastData[selectedDay]) return;
+            const currentData = cachedForecastData[selectedDay];
+            const hourlyListEl = document.getElementById('hourlyList');
+            const titleEl = document.getElementById('hourlyModalTitle');
+            const dateEl = document.getElementById('hourlyModalDate');
+
+            if (titleEl) titleEl.innerText = `${activeLocation || '予報地点'} 1時間天気`;
+            if (dateEl) dateEl.innerText = currentData.targetDateFormatted.split(' ')[0] || '';
+
+            if (hourlyListEl && currentData.hourlyDetails) {
+                // 「今日」が選択されている場合は、現在の時間以降のみを抽出
+                let listToDisplay = currentData.hourlyDetails;
+                if (selectedDay === 'today') {
+                    const currentHour = new Date().getHours();
+                    listToDisplay = listToDisplay.filter(item => parseInt(item.hour, 10) >= currentHour);
+                }
+
+                if (listToDisplay.length === 0) {
+                    hourlyListEl.innerHTML = `
+                        <div class="py-8 text-center text-[#8e8e93] font-medium text-[14px]">
+                            本日の予報対象時間は終了しました
+                        </div>
+                    `;
+                } else {
+                    hourlyListEl.innerHTML = listToDisplay.map(item => {
+                        const iconSvg = renderWeeklyListIcon(item.weatherCode, '');
+                        return `
+                            <div class="flex items-center justify-between py-2.5 px-2 hover:bg-[#f8f9fa] text-[14px] whitespace-nowrap">
+                                <div class="w-16 shrink-0 font-bold font-mono text-[#1c1c1e] whitespace-nowrap">${item.hour}:00</div>
+                                <div class="w-10 shrink-0 flex items-center justify-center">${iconSvg}</div>
+                                <div class="flex-1 font-mono font-bold text-center text-[#1c1c1e] text-[15px]">${item.temp}℃</div>
+                                <div class="w-14 shrink-0 font-mono font-bold text-right text-[#007aff] text-[15px]">${item.pop}%</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            toggleHourlyModal(true);
+        }
+
         function toggleSettingsModal(show) {
             const modal = document.getElementById('settingsModal');
             if (!modal) return;
@@ -1133,7 +1216,7 @@
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -1155,7 +1238,7 @@
                     }
                 }
 
-                if (jmaOverviewTitle) jmaOverviewTitle.innerText = `週間天気（${overviewTarget || targetLocation}）`;
+                if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || targetLocation;
                 if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁公式発表';
 
                 let jmaData = null;
@@ -1184,6 +1267,7 @@
                     let nightTemp = null;
                     let dailyMaxPop = null;
                     let pop6h = [null, null, null, null];
+                    let hourlyDetails = [];
 
                     const dObj = new Date(dateStr + 'T00:00:00');
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
@@ -1320,6 +1404,22 @@
                                 pop6h[slot.index] = maxSlotPop;
                             }
                         });
+
+                        // 1時間ごとのデータ一覧を生成（0時〜23時）
+                        for (let h = 0; h < 24; h++) {
+                            const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
+                            const idx = hourly.time.indexOf(timeKey);
+                            const tVal = (idx !== -1 && hourly.temperature_2m?.[idx] !== undefined) ? Math.round(hourly.temperature_2m[idx]) : '--';
+                            const pVal = (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) ? hourly.precipitation_probability[idx] : 0;
+                            const wCode = (idx !== -1 && hourly.weathercode?.[idx] !== undefined) ? hourly.weathercode[idx] : 0;
+
+                            hourlyDetails.push({
+                                hour: String(h).padStart(2, '0'),
+                                temp: tVal,
+                                pop: pVal,
+                                weatherCode: wCode
+                            });
+                        }
                     }
 
                     if (maxTemp === null) maxTemp = 20;
@@ -1347,7 +1447,8 @@
                         morningTemp,
                         noonTemp,
                         nightTemp,
-                        pop6h
+                        pop6h,
+                        hourlyDetails
                     };
                 };
 
@@ -1666,17 +1767,17 @@
                 const iconSvg = renderWeeklyListIcon(weatherCode, '');
 
                 return `
-                    <div class="flex items-center justify-between py-2.5 px-2 hover:bg-[#f8f9fa] transition-colors whitespace-nowrap">
-                        <div class="flex items-center gap-1 shrink-0 font-medium whitespace-nowrap min-w-[64px]">
-                            <span class="text-[17px] font-bold text-[#1c1c1e] min-w-[24px] text-right font-mono whitespace-nowrap leading-none">${dateNum}</span>
+                    <div class="flex items-center justify-between py-2.5 px-1 hover:bg-[#f8f9fa] transition-colors whitespace-nowrap">
+                        <div class="flex items-center gap-1 shrink-0 font-medium whitespace-nowrap min-w-[56px]">
+                            <span class="text-[17px] font-bold text-[#1c1c1e] min-w-[22px] text-right font-mono whitespace-nowrap leading-none">${dateNum}</span>
                             <span class="text-[16px] font-bold ${dayColorClass} whitespace-nowrap leading-none">(${dayText})</span>
                         </div>
 
-                        <div class="w-[36px] flex items-center justify-center shrink-0">
+                        <div class="w-[34px] flex items-center justify-center shrink-0">
                             ${iconSvg}
                         </div>
 
-                        <div class="flex items-baseline justify-end gap-3 text-[18px] font-bold font-mono tracking-tight shrink-0 min-w-[96px] whitespace-nowrap">
+                        <div class="flex items-baseline justify-end gap-2 text-[17px] font-bold font-mono tracking-tight shrink-0 min-w-[82px] whitespace-nowrap">
                             <div class="text-[#e03131]">
                                 <span>${displayMax}</span><span class="text-[12px] font-normal">℃</span>
                             </div>
@@ -1685,11 +1786,11 @@
                             </div>
                         </div>
 
-                        <div class="w-[45px] text-right text-[15px] font-bold text-[#374151] font-mono shrink-0 whitespace-nowrap">
+                        <div class="w-[38px] text-right text-[15px] font-bold text-[#374151] font-mono shrink-0 whitespace-nowrap">
                             ${displayPop}
                         </div>
 
-                        <div class="w-[24px] flex items-center justify-end shrink-0">
+                        <div class="w-[28px] flex items-center justify-center shrink-0 pl-1">
                             <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">
                                 ${reliability}
                             </span>
