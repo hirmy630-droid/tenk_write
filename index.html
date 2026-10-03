@@ -25,7 +25,7 @@
             overflow: hidden;
         }
 
-        /* セーフエリア上部余白に+10pxを追加設定 */
+        /* セーフエリア上部余白 */
         .safe-area-top {
             padding-top: calc(env(safe-area-inset-top, 16px) + 10px);
         }
@@ -56,14 +56,13 @@
             to { transform: rotate(360deg); }
         }
 
-        /* 最小フォントサイズ14px保証 */
         html, body {
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
             font-size: 14px;
         }
 
-        /* Pull-to-Refresh インジケーター用のスタイル */
+        /* Pull-to-Refresh インジケーター */
         #ptrContainer {
             overflow: hidden;
             height: 0px;
@@ -75,9 +74,6 @@
         }
         #ptrContainer.ptr-dragging {
             transition: none;
-        }
-        .ptr-icon-spin {
-            animation: spin 0.75s linear infinite;
         }
 
         /* スクロールバーのスリムスタイリング */
@@ -96,7 +92,7 @@
 </head>
 <body class="bg-[#f2f2f7] select-none text-[14px]">
 
-    <!-- ==================== 画面1: 地点管理・設定画面（メイン設定画面） ==================== -->
+    <!-- ==================== 画面1: 地点管理・設定画面 ==================== -->
     <div id="mainScreenContainer" class="hidden w-full max-w-sm mx-auto flex-1 flex flex-col justify-start space-y-4 p-4 safe-area-top safe-area-bottom overflow-y-auto">
         
         <!-- Header -->
@@ -122,7 +118,6 @@
                 <span id="saveStatus" class="text-[14px] text-[#34c759] font-semibold transition-opacity opacity-0">追加完了</span>
             </div>
             
-            <!-- 追加フォーム -->
             <div class="flex items-center gap-2">
                 <input 
                     type="text" 
@@ -139,7 +134,6 @@
                 </button>
             </div>
 
-            <!-- 登録場所リスト -->
             <div class="pt-0.5">
                 <div id="locationList" class="space-y-1.5 max-h-[235px] overflow-y-auto pr-0.5">
                     <!-- JavaScriptで動的生成 -->
@@ -186,12 +180,11 @@
             <div id="loading" class="hidden py-6 flex flex-col items-center justify-center">
                 <div class="ios-loader w-8 h-8 mb-3"></div>
                 <p id="loadingText" class="text-[13px] font-semibold text-[#374151] text-wrap-optimal animate-pulse text-center">
-                    気象庁データ ＆ 8-17時体感温度取得中...
+                    気象庁データ ＆ 体感温度取得中...
                 </p>
             </div>
         </div>
 
-        <!-- Error Card -->
         <div id="errorBox" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed text-wrap-optimal shadow-sm"></div>
 
     </div>
@@ -199,22 +192,19 @@
     <!-- ==================== 画面2: 天気・服装予報画面（独立ビュー） ==================== -->
     <div id="forecastScreenContainer" class="flex-1 flex flex-col bg-[#f2f2f7] safe-area-bottom h-full overflow-hidden">
         
-        <!-- Navigation Bar: iOSステータスバー上部に+10pxの余白を設けた一体化バー -->
+        <!-- Navigation Bar -->
         <div class="w-full bg-white border-b border-[#e5e5ea] shadow-xs safe-area-top shrink-0">
             <div class="max-w-sm mx-auto flex items-center justify-between px-3.5 py-2.5 gap-2">
-                <!-- 登録地点切り替えプルダウン -->
                 <div class="relative flex items-center flex-1 max-w-[240px]">
                     <span class="absolute left-2.5 pointer-events-none text-[14px]">📍</span>
                     <select 
                         id="resultLocationSelect" 
                         onchange="handleResultLocationSelect(this.value)" 
                         class="w-full appearance-none bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] font-bold pl-7 pr-6 py-1.5 rounded-xl border border-[#d1d1d6] shadow-xs outline-none focus:border-[#ff9500] transition-all cursor-pointer truncate">
-                        <!-- JavaScriptで動的生成 -->
                     </select>
                     <span class="absolute right-2 pointer-events-none text-[#4b5563] text-[11px]">▼</span>
                 </div>
 
-                <!-- 週間予報ボタン -->
                 <div class="flex items-center shrink-0">
                     <button type="button" onclick="toggleOverviewModal(true)" class="ios-btn bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] px-3 py-1.5 rounded-xl border border-[#d1d1d6] flex items-center gap-1 transition-all shadow-sm font-semibold">
                         <span>📅 週間</span>
@@ -223,7 +213,7 @@
             </div>
         </div>
 
-        <!-- Scrollable Content Area with Pull To Refresh support -->
+        <!-- Scrollable Content Area -->
         <div id="resultScrollContainer" class="flex-1 overflow-y-auto px-3.5 py-2 space-y-2.5 max-w-sm w-full mx-auto overscroll-y-contain">
             
             <!-- Pull-To-Refresh Indicator Block -->
@@ -259,17 +249,8 @@
             <!-- Weather Details Section -->
             <div class="bg-white rounded-2xl p-2.5 border border-[#e5e5ea] shadow-sm">
                 <div class="flex flex-col items-center justify-center text-center pt-0.5 pb-1">
-                    <!-- 日付表示 -->
-                    <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">
-                        --
-                    </div>
-
-                    <!-- 大きな天気アイコン -->
-                    <div id="imageStyleIcon" class="w-20 h-20 flex items-center justify-center my-0.5 select-none">
-                        <!-- SVG動的描画 -->
-                    </div>
-
-                    <!-- 天気表示 -->
+                    <div id="imageStyleDate" class="text-[20px] font-bold text-[#1c1c1e] tracking-wide mb-1">--</div>
+                    <div id="imageStyleIcon" class="w-20 h-20 flex items-center justify-center my-0.5 select-none"></div>
                     <div class="flex items-center justify-center mt-1 mb-1">
                         <span id="imageStyleWeatherText" class="text-[21px] font-bold text-[#1c1c1e]">--</span>
                     </div>
@@ -295,7 +276,6 @@
 
                 <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
                 <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
-                    <!-- タップで1時間ごとの天気をポップアップ表示 -->
                     <div onclick="openHourlyModal()" class="cursor-pointer active:opacity-75 transition-opacity" title="タップして1時間ごとの天気を表示">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
@@ -354,12 +334,12 @@
                 </div>
                 <div id="outfitSection" class="space-y-1.5"></div>
                 
-                <!-- 朝・昼・夜の気温＆服装タイムライン -->
+                <!-- 朝・昼・夜の寒暖差タイムライン -->
                 <div class="bg-white rounded-xl p-2.5 border border-[#e5e5ea] space-y-2 mt-2 shadow-xs">
                     <div class="flex items-center justify-between px-0.5">
                         <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
                             <span>🕒</span>
-                            <span>朝・昼・夜の寒暖差</span>
+                            <span>朝・昼・夜の体感寒暖差</span>
                         </span>
                     </div>
                     <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
@@ -373,7 +353,7 @@
                 </div>
             </div>
 
-            <!-- Bottom Back Button & Brand Logo (KYOWA ROOF) -->
+            <!-- Bottom Back Button & Brand Logo -->
             <div class="pt-2 pb-6 flex flex-col items-center">
                 <button type="button" onclick="showMainScreen()" class="ios-btn w-full bg-white hover:bg-[#f2f2f7] text-[#1c1c1e] font-semibold text-[15px] h-11 rounded-xl border border-[#d1d1d6] shadow-xs transition-all flex items-center justify-center gap-1.5">
                     <span>📍</span>
@@ -397,7 +377,6 @@
                 <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium shrink-0 ml-2">--:-- 発表</span>
             </div>
 
-            <!-- 週間天気リスト -->
             <div class="flex-1 overflow-y-auto overflow-x-hidden pr-1">
                 <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
                     <!-- JavaScriptで動的生成 -->
@@ -412,7 +391,7 @@
         </div>
     </div>
 
-    <!-- 1時間ごとの天気ポップアップモーダル（軽量・即時表示） -->
+    <!-- 1時間ごとの天気ポップアップモーダル -->
     <div id="hourlyModal" class="hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
         <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3 flex flex-col max-h-[85vh]">
             <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
@@ -423,7 +402,6 @@
                 <span id="hourlyModalDate" class="text-[13px] text-[#4b5563] font-semibold">--</span>
             </div>
 
-            <!-- 項目見出し行 -->
             <div class="flex items-center justify-between px-2 py-1 text-[12px] font-bold text-[#6b7280] border-b border-[#f2f2f7] shrink-0 bg-[#f8f9fa] rounded-lg">
                 <span class="w-14 text-left">時間</span>
                 <span class="w-8 text-center">天気</span>
@@ -432,7 +410,6 @@
                 <span class="w-14 text-right">風速</span>
             </div>
 
-            <!-- 1時間ごとのリスト -->
             <div class="flex-1 overflow-y-auto pr-1">
                 <div id="hourlyList" class="divide-y divide-[#f2f2f7]">
                     <!-- JavaScriptで動的生成 -->
@@ -455,10 +432,10 @@
                 <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
             </div>
             <p class="text-[14px] text-[#4b5563] leading-relaxed">
-                標準状態で登録不要の気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
+                標準状態で気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
             </p>
             <div>
-                <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（設定すると高度な助言を追加可能）</label>
+                <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（任意）</label>
                 <input 
                     type="password" 
                     id="userApiKey" 
@@ -473,6 +450,7 @@
         </div>
     </div>
 
+    <!-- ==================== JavaScript ロジック ==================== -->
     <script>
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_ACTIVE = 'weather_checker_active_location';
@@ -480,7 +458,6 @@
         const STORAGE_KEY_SELECTED_DAY = 'weather_checker_selected_day';
         const DEFAULT_LOCATIONS = ['東京都品川区'];
 
-        // 全国主要都市 気象庁府県予報区コード
         const PREFECTURE_MAP = {
             '北海道': { code: '016000', lat: 43.0642, lon: 141.3469 },
             '札幌':   { code: '016000', lat: 43.0642, lon: 141.3469 },
@@ -965,7 +942,6 @@
             return { code: '130000', lat: 35.6895, lon: 139.6917 };
         }
 
-        // 日本時間(JST)で厳密に雨予測を計算（9時間ズレを完全解消）
         function calculateNextRain(meteoData) {
             if (!meteoData?.hourly?.time) {
                 return { text: '予報データを取得できませんでした', status: 'unknown' };
@@ -1040,12 +1016,6 @@
                     status: 'days'
                 };
             }
-        }
-
-        function getYesterdayDateString() {
-            const now = new Date();
-            const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            return `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
         }
 
         function getTodayDateString() {
@@ -1252,7 +1222,6 @@
                 const diffX = touchEndX - touchStartX;
                 const diffY = touchEndY - touchStartY;
 
-                // 左右どちらのスワイプでも、現在と逆の対象日（今日 ⇆ 明日）へ交互に切り替え
                 if (elapsedTime <= MAX_TIME && Math.abs(diffX) >= SWIPE_THRESHOLD && Math.abs(diffY) <= RESTRAINT) {
                     const nextDay = (selectedDay === 'today') ? 'tomorrow' : 'today';
                     switchResultDay(nextDay);
@@ -1332,7 +1301,6 @@
                 }
 
                 cachedNextRainInfo = calculateNextRain(meteoData);
-
                 renderWeeklyList(meteoData, jmaData);
 
                 const parseDayData = (dateStr, fallbackIdx, labelPrefix) => {
@@ -1355,7 +1323,7 @@
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     targetDateFormatted = `${labelPrefix} ${dObj.getMonth() + 1}/${dObj.getDate()} (${days[dObj.getDay()]})`;
 
-                    // ① 気象庁公式データ（予報官発表値・公式ブロック降水確率）を最優先抽出
+                    // ① 気象庁公式データ
                     if (Array.isArray(jmaData) && jmaData.length > 0) {
                         const weatherSeries = jmaData[0]?.timeSeries?.[0];
                         const area = weatherSeries?.areas?.[0];
@@ -1392,7 +1360,6 @@
                             });
                         }
 
-                        // 気象庁発表の公式最高・最低気温（第3時系列：予報官判定値）
                         const tempSeries = jmaData[0]?.timeSeries?.[2];
                         const tempArea = tempSeries?.areas?.[0];
                         const tempDefines = tempSeries?.timeDefines || [];
@@ -1411,7 +1378,6 @@
                             }
                         });
 
-                        // 【最重要改善】夕方発表などで短期データから気温が欠落した場合、気象庁公式の週間予報から確実に回収
                         if ((minTemp === null || maxTemp === null) && jmaData[1]?.timeSeries?.[1]) {
                             const weekArea = jmaData[1].timeSeries[1].areas?.[0];
                             const weekDefines = jmaData[1].timeSeries[1].timeDefines || [];
@@ -1423,7 +1389,7 @@
                         }
                     }
 
-                    // ② 数値モデルによる補完（気象庁公式値が取得できない場合の安全ガード）
+                    // ② 数値モデルによる補完
                     const daily = meteoData?.daily;
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
@@ -1449,13 +1415,22 @@
                         const mNoonIdx = hourly.time.indexOf(`${dateStr}T14:00`);
                         const mNightIdx = hourly.time.indexOf(`${dateStr}T20:00`);
 
-                        if (mMorningIdx !== -1 && hourly.temperature_2m?.[mMorningIdx] !== undefined) {
+                        // 朝・昼・夜の数値を実気温から「体感温度（apparent_temperature）」に設定
+                        if (mMorningIdx !== -1 && hourly.apparent_temperature?.[mMorningIdx] !== undefined) {
+                            morningTemp = Math.round(hourly.apparent_temperature[mMorningIdx]);
+                        } else if (mMorningIdx !== -1 && hourly.temperature_2m?.[mMorningIdx] !== undefined) {
                             morningTemp = Math.round(hourly.temperature_2m[mMorningIdx]);
                         }
-                        if (mNoonIdx !== -1 && hourly.temperature_2m?.[mNoonIdx] !== undefined) {
+
+                        if (mNoonIdx !== -1 && hourly.apparent_temperature?.[mNoonIdx] !== undefined) {
+                            noonTemp = Math.round(hourly.apparent_temperature[mNoonIdx]);
+                        } else if (mNoonIdx !== -1 && hourly.temperature_2m?.[mNoonIdx] !== undefined) {
                             noonTemp = Math.round(hourly.temperature_2m[mNoonIdx]);
                         }
-                        if (mNightIdx !== -1 && hourly.temperature_2m?.[mNightIdx] !== undefined) {
+
+                        if (mNightIdx !== -1 && hourly.apparent_temperature?.[mNightIdx] !== undefined) {
+                            nightTemp = Math.round(hourly.apparent_temperature[mNightIdx]);
+                        } else if (mNightIdx !== -1 && hourly.temperature_2m?.[mNightIdx] !== undefined) {
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
@@ -1512,7 +1487,6 @@
                             }
                         });
 
-                        // 1時間ごとの推移リスト生成（降水確率はAPI値と気象庁公式スロットを安全に連動）
                         for (let h = 0; h < 24; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
                             const idx = hourly.time.indexOf(timeKey);
@@ -1522,7 +1496,6 @@
                                 ? Math.round(hourly.precipitation_probability[idx]) 
                                 : null;
 
-                            // 万が一nullの場合は気象庁公式の6時間ブロック確率を自動連動
                             if (pVal === null || isNaN(pVal)) {
                                 const slotIdx = Math.floor(h / 6);
                                 pVal = (pop6h[slotIdx] !== null && pop6h[slotIdx] !== undefined) ? pop6h[slotIdx] : (dailyMaxPop ?? 10);
@@ -1541,7 +1514,6 @@
                         }
                     }
 
-                    // 気温の安全ガード（逆転や同一値の防止）
                     if (maxTemp === null) maxTemp = 20;
                     if (minTemp === null) minTemp = 14;
                     if (minTemp >= maxTemp) {
@@ -1688,6 +1660,7 @@
                 `;
             }
 
+            // 朝・昼・夜の体感温度タイムライン（スマホのコンパクト画面でも折り返さず綺麗に収まる設計）
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
@@ -1937,7 +1910,6 @@
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
                         registration.update();
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     }, err => {
                         console.log('ServiceWorker registration failed: ', err);
                     });
