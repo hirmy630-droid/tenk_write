@@ -61,7 +61,6 @@
             font-size: 14px;
         }
 
-        /* Pull-to-Refresh インジケーター */
         #ptrContainer {
             overflow: hidden;
             height: 0px;
@@ -75,7 +74,6 @@
             transition: none;
         }
 
-        /* スクロールバーのスリムスタイリング */
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
@@ -134,9 +132,7 @@
             </div>
 
             <div class="pt-0.5">
-                <div id="locationList" class="space-y-1.5 max-h-[235px] overflow-y-auto pr-0.5">
-                    <!-- JavaScriptで動的生成 -->
-                </div>
+                <div id="locationList" class="space-y-1.5 max-h-[235px] overflow-y-auto pr-0.5"></div>
             </div>
         </div>
 
@@ -341,15 +337,11 @@
                             <span>朝・昼・夜の体感寒暖差</span>
                         </span>
                     </div>
-                    <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center">
-                        <!-- JavaScriptで動的生成 -->
-                    </div>
+                    <div id="timeTimeline" class="grid grid-cols-3 gap-1.5 text-center"></div>
                 </div>
 
                 <!-- Rain / Acc Advice -->
-                <div id="accessoryAdvice" class="mt-2 bg-white/90 rounded-xl p-2.5 border border-orange-200/80 text-[14px] text-[#374151] shadow-xs leading-relaxed">
-                    <!-- Dynamic accessory notice -->
-                </div>
+                <div id="accessoryAdvice" class="mt-2 bg-white/90 rounded-xl p-2.5 border border-orange-200/80 text-[14px] text-[#374151] shadow-xs leading-relaxed"></div>
             </div>
 
             <!-- Bottom Back Button & Brand Logo -->
@@ -381,9 +373,7 @@
             </div>
 
             <div class="flex-1 overflow-y-auto overflow-x-hidden pr-1">
-                <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
-                    <!-- JavaScriptで動的生成 -->
-                </div>
+                <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]"></div>
             </div>
 
             <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
@@ -436,12 +426,8 @@
                 </div>
             </div>
 
-            <!-- その日の雨・外出ワンポイントアドバイス -->
-            <div id="dayPop6hAdviceBox" class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-2.5 text-[13px] text-[#1c1c1e] leading-snug">
-                <!-- 動的生成 -->
-            </div>
+            <div id="dayPop6hAdviceBox" class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-2.5 text-[13px] text-[#1c1c1e] leading-snug"></div>
 
-            <!-- ボタンエリア（週間一覧へ戻る & 閉じる） -->
             <div class="pt-1.5 shrink-0 border-t border-[#e5e5ea] flex gap-2">
                 <button type="button" onclick="backToOverviewModal()" class="ios-btn flex-1 bg-[#ff9500] hover:bg-[#e08500] text-white font-semibold text-[14px] py-2 rounded-xl shadow-xs transition-colors">
                     ← 週間予報に戻る
@@ -473,9 +459,7 @@
             </div>
 
             <div class="flex-1 overflow-y-auto pr-1">
-                <div id="hourlyList" class="divide-y divide-[#f2f2f7]">
-                    <!-- JavaScriptで動的生成 -->
-                </div>
+                <div id="hourlyList" class="divide-y divide-[#f2f2f7]"></div>
             </div>
 
             <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
@@ -494,7 +478,7 @@
                 <button type="button" onclick="toggleSettingsModal(false)" class="text-[#4b5563] hover:text-[#1c1c1e] text-lg">✕</button>
             </div>
             <p class="text-[14px] text-[#4b5563] leading-relaxed">
-                標準状態で気象庁公式APIおよびOpen-Meteoを使用しているため、設定なしでもそのままご利用いただけます。
+                標準状態で気象庁公式APIおよび高精度気象データを使用しているため、設定なしでもそのままご利用いただけます。
             </p>
             <div>
                 <label for="userApiKey" class="text-[14px] font-semibold text-[#374151] mb-1 block">Gemini APIキー（任意）</label>
@@ -517,9 +501,9 @@
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_ACTIVE = 'weather_checker_active_location';
         const STORAGE_KEY_API_KEY = 'weather_checker_gemini_key';
-        const STORAGE_KEY_SELECTED_DAY = 'weather_checker_selected_day';
         const DEFAULT_LOCATIONS = ['東京都品川区'];
 
+        // 気象庁 予報区コードマップ
         const PREFECTURE_MAP = {
             '北海道': { code: '016000', lat: 43.0642, lon: 141.3469 },
             '札幌':   { code: '016000', lat: 43.0642, lon: 141.3469 },
@@ -595,44 +579,36 @@
             '那覇':   { code: '471000', lat: 26.2124, lon: 127.6809 }
         };
 
-        function evaluateClothingByCriteria(apparentTemp, maxWindSpeed = 3, tempDiff = 0, morningTemp = 15, nightTemp = 15) {
+        // 【手持ち服リスト】および【判定基準】に厳密に従った判定ロジック
+        function evaluateClothingByCriteria(apparentTemp) {
             let label = '';
             let jacket = '';
             let pants = '';
 
-            const isWindy = maxWindSpeed >= 6;
-            const windNotice = isWindy ? '（防風素材推奨）' : '';
-
-            const minCommuteTemp = Math.min(morningTemp, nightTemp);
-            let layerNotice = '';
-            if (tempDiff >= 7 && minCommuteTemp <= 16) {
-                layerNotice = ` <span class="text-[13px] text-amber-700 block mt-0.5 font-normal">※朝晩は${minCommuteTemp}℃まで冷え込むため、脱ぎ着できる羽織りものが必須です</span>`;
-            }
-
             if (apparentTemp >= 25) {
-                label = '25℃以上 (夏日)';
-                jacket = `半袖シャツ${isWindy ? ' ＋ 薄手の風除け' : ''}${layerNotice}`;
-                pants = '通気性の良いズボン';
+                label = '25℃以上';
+                jacket = '半袖シャツ';
+                pants = 'ズボン';
             } else if (apparentTemp >= 20) {
-                label = '20℃〜24℃ (快適)';
-                jacket = `長袖シャツ${windNotice}${layerNotice}`;
+                label = '20℃〜24℃';
+                jacket = '長袖シャツ';
                 pants = 'ズボン';
             } else if (apparentTemp >= 16) {
-                label = '16℃〜19℃ (肌寒い)';
-                jacket = `インナーシャツ ＋ 長袖シャツ ＋ ジャケット${windNotice}${layerNotice}`;
+                label = '16℃〜20℃';
+                jacket = 'インナーシャツ＋長袖シャツ＋ジャケット';
                 pants = 'ズボン';
             } else if (apparentTemp >= 11) {
-                label = '11℃〜15℃ (肌寒い・冷え込み)';
-                jacket = `防寒インナー ＋ 長袖シャツ ＋ 軽防寒服${windNotice}${layerNotice}`;
-                pants = 'インナー ＋ ズボン';
+                label = '11℃〜15℃';
+                jacket = '防寒インナー＋長袖シャツ＋軽防寒服';
+                pants = 'インナー＋ズボン';
             } else if (apparentTemp >= 6) {
-                label = '6℃〜10℃ (冬の寒さ)';
-                jacket = `防寒インナー ＋ 長袖シャツ ＋ ジャケット ＋ 軽防寒服${windNotice}`;
-                pants = '防寒インナー ＋ 軽防寒ズボン';
+                label = '6℃〜10℃';
+                jacket = '防寒インナー＋長袖シャツ＋ジャケット＋軽防寒服';
+                pants = '防寒インナー＋軽防寒ズボン';
             } else {
-                label = '5℃以下 (真冬の厳しい寒さ)';
-                jacket = `防寒インナー ＋ 長袖シャツ ＋ 重防寒服（ダウン等）${windNotice}`;
-                pants = '防寒インナー ＋ 防寒ズボン';
+                label = '5℃以下';
+                jacket = '防寒インナー＋長袖シャツ＋重防寒服';
+                pants = '防寒インナー＋防寒ズボン';
             }
 
             return { label, jacket, pants };
@@ -650,7 +626,7 @@
         let activeLocation = '東京都品川区';
         let selectedDay = 'today';
         let cachedForecastData = null;
-        let cachedRawMeteoData = null; // 週間ポップアップ用の全時間帯キャッシュ
+        let cachedRawMeteoData = null;
         let lastFetchedTimestamp = 0;
         let isRefreshing = false;
         let cachedNextRainInfo = null;
@@ -719,7 +695,6 @@
             renderLocations();
 
             selectedDay = 'today';
-
             updateTabStyles();
             initPullToRefresh();
             initSwipeDaySwitcher();
@@ -920,21 +895,15 @@
         function toggleOverviewModal(show) {
             const modal = document.getElementById('overviewModal');
             if (!modal) return;
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
         }
 
         function toggleHourlyModal(show) {
             const modal = document.getElementById('hourlyModal');
             if (!modal) return;
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
         }
 
         function closeAllModals() {
@@ -963,14 +932,12 @@
 
             if (!dayPopModal) return;
 
-            // 週間モーダルから切り替え表示
             if (overviewModal) overviewModal.classList.add('hidden');
             dayPopModal.classList.remove('hidden');
 
             if (titleEl) titleEl.innerText = `${activeLocation || '地点'} 降水予報`;
             if (dateEl) dateEl.innerText = labelText;
 
-            // 6時間ごとの降水確率＆気温を計算（Open-Meteoの全時間帯キャッシュから抽出）
             let pops = [0, 0, 0, 0];
             let temps = ['--', '--', '--', '--'];
 
@@ -986,8 +953,8 @@
                 slotRanges.forEach(slot => {
                     let maxP = 0;
                     for (let h = slot.start; h <= slot.end; h++) {
-                        const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
-                        const idx = hourly.time.indexOf(timeKey);
+                        const timePrefix = `${dateStr}T${String(h).padStart(2, '0')}`;
+                        const idx = hourly.time.findIndex(t => t.startsWith(timePrefix));
                         if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) {
                             if (hourly.precipitation_probability[idx] > maxP) {
                                 maxP = hourly.precipitation_probability[idx];
@@ -996,14 +963,13 @@
                     }
                     pops[slot.idx] = maxP;
 
-                    const midKey = `${dateStr}T${String(slot.midHour).padStart(2, '0')}:00`;
-                    const midIdx = hourly.time.indexOf(midKey);
+                    const midPrefix = `${dateStr}T${String(slot.midHour).padStart(2, '0')}`;
+                    const midIdx = hourly.time.findIndex(t => t.startsWith(midPrefix));
                     if (midIdx !== -1 && hourly.temperature_2m?.[midIdx] !== undefined) {
                         temps[slot.idx] = Math.round(hourly.temperature_2m[midIdx]);
                     }
                 });
             } else {
-                // キャッシュが万一無い場合の安全策
                 const fallbackPop = maxPopVal ?? 10;
                 pops = [fallbackPop, fallbackPop, fallbackPop, fallbackPop];
             }
@@ -1085,11 +1051,8 @@
         function toggleSettingsModal(show) {
             const modal = document.getElementById('settingsModal');
             if (!modal) return;
-            if (show) {
-                modal.classList.remove('hidden');
-            } else {
-                modal.classList.add('hidden');
-            }
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
         }
 
         function saveApiKeySettings() {
@@ -1115,6 +1078,7 @@
 
             const times = meteoData.hourly.time;
             const pops = meteoData.hourly.precipitation_probability || [];
+            const precips = meteoData.hourly.precipitation || [];
             const codes = meteoData.hourly.weathercode || [];
             
             const now = new Date();
@@ -1132,10 +1096,11 @@
 
             for (let i = startIdx; i < times.length; i++) {
                 const pop = pops[i] ?? 0;
+                const precip = precips[i] ?? 0;
                 const code = codes[i] ?? 0;
 
                 const isRainCode = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
-                if (isRainCode || pop >= 50) {
+                if (isRainCode || pop >= 50 || precip >= 0.2) {
                     foundRainIdx = i;
                     break;
                 }
@@ -1323,9 +1288,7 @@
                     isRefreshing = true;
                     ptrContainer.style.height = '48px';
                     ptrIcon.style.transform = 'rotate(0deg)';
-                    ptrIcon.innerHTML = `
-                        <div class="ios-loader w-4 h-4 border-2"></div>
-                    `;
+                    ptrIcon.innerHTML = `<div class="ios-loader w-4 h-4 border-2"></div>`;
                     ptrText.innerText = '最新データを更新中...';
 
                     try {
@@ -1410,7 +1373,6 @@
             const resultScroll = document.getElementById('resultScrollContainer');
 
             const targetLocation = activeLocation || '東京都品川区';
-
             updateResultLocationSelect();
 
             if (!isPullRefresh && btn && loading) {
@@ -1431,7 +1393,9 @@
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,cloudcover,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
+                
+                // Open-Meteo: 気象庁数値予報（安定パラメータ）
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weathercode,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=8${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -1443,13 +1407,17 @@
                 let overviewTarget = '';
 
                 if (jmaOverviewRes && jmaOverviewRes.ok) {
-                    const overviewData = await jmaOverviewRes.json();
-                    if (overviewData) {
-                        overviewTarget = overviewData.targetArea || '';
-                        if (overviewData.reportDatetime) {
-                            const d = new Date(overviewData.reportDatetime);
-                            overviewReportTime = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} 発表`;
+                    try {
+                        const overviewData = await jmaOverviewRes.json();
+                        if (overviewData) {
+                            overviewTarget = overviewData.targetArea || '';
+                            if (overviewData.reportDatetime) {
+                                const d = new Date(overviewData.reportDatetime);
+                                overviewReportTime = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} 発表`;
+                            }
                         }
+                    } catch (e) {
+                        console.warn("JMA overview parse error:", e);
                     }
                 }
 
@@ -1458,13 +1426,21 @@
 
                 let jmaData = null;
                 if (jmaForecastRes && jmaForecastRes.ok) {
-                    jmaData = await jmaForecastRes.json();
+                    try {
+                        jmaData = await jmaForecastRes.json();
+                    } catch (e) {
+                        console.warn("JMA forecast parse error:", e);
+                    }
                 }
 
                 let meteoData = null;
                 if (meteoRes && meteoRes.ok) {
-                    meteoData = await meteoRes.json();
-                    cachedRawMeteoData = meteoData; // 週間タップ時のためにメモリ保存
+                    try {
+                        meteoData = await meteoRes.json();
+                        cachedRawMeteoData = meteoData;
+                    } catch (e) {
+                        console.warn("Open-Meteo parse error:", e);
+                    }
                 }
 
                 cachedNextRainInfo = calculateNextRain(meteoData);
@@ -1490,69 +1466,81 @@
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     targetDateFormatted = `${labelPrefix} ${dObj.getMonth() + 1}/${dObj.getDate()} (${days[dObj.getDay()]})`;
 
-                    // ① 気象庁公式データ
+                    // ① 気象庁公式データ（第一優先）
                     if (Array.isArray(jmaData) && jmaData.length > 0) {
-                        const weatherSeries = jmaData[0]?.timeSeries?.[0];
-                        const area = weatherSeries?.areas?.[0];
-                        const timeDefines = weatherSeries?.timeDefines || [];
+                        try {
+                            const weatherSeries = jmaData[0]?.timeSeries?.[0];
+                            const area = weatherSeries?.areas?.[0];
+                            const timeDefines = weatherSeries?.timeDefines || [];
 
-                        let targetIdx = timeDefines.findIndex(t => t.startsWith(dateStr));
-                        if (targetIdx === -1) {
-                            targetIdx = Math.min(fallbackIdx, timeDefines.length - 1);
-                        }
+                            let targetIdx = timeDefines.findIndex(t => t.startsWith(dateStr));
+                            if (targetIdx === -1) {
+                                targetIdx = Math.min(fallbackIdx, Math.max(0, timeDefines.length - 1));
+                            }
 
-                        if (area?.weathers?.[targetIdx]) {
-                            weatherText = area.weathers[targetIdx].replace(/\s+/g, ' ').trim();
-                        }
-                        if (area?.winds?.[targetIdx]) {
-                            windText = area.winds[targetIdx].replace(/\s+/g, ' ').trim();
-                        }
+                            if (area?.weathers?.[targetIdx]) {
+                                weatherText = area.weathers[targetIdx].replace(/\s+/g, ' ').trim();
+                            }
+                            if (area?.winds?.[targetIdx]) {
+                                windText = area.winds[targetIdx].replace(/\s+/g, ' ').trim();
+                            }
 
-                        const popSeries = jmaData[0]?.timeSeries?.[1];
-                        const popArea = popSeries?.areas?.[0];
-                        const popDefines = popSeries?.timeDefines || [];
+                            const popSeries = jmaData[0]?.timeSeries?.[1];
+                            const popArea = popSeries?.areas?.[0];
+                            const popDefines = popSeries?.timeDefines || [];
 
-                        if (popArea?.pops) {
-                            popDefines.forEach((t, idx) => {
-                                if (t.startsWith(dateStr) && popArea.pops[idx] !== undefined && popArea.pops[idx] !== '') {
-                                    const pVal = parseInt(popArea.pops[idx], 10);
-                                    popList.push(`${pVal}%`);
-                                    if (dailyMaxPop === null || pVal > dailyMaxPop) dailyMaxPop = pVal;
+                            if (popArea?.pops) {
+                                popDefines.forEach((t, idx) => {
+                                    if (t.startsWith(dateStr) && popArea.pops[idx] !== undefined && popArea.pops[idx] !== '') {
+                                        const pVal = parseInt(popArea.pops[idx], 10);
+                                        if (!isNaN(pVal)) {
+                                            popList.push(`${pVal}%`);
+                                            if (dailyMaxPop === null || pVal > dailyMaxPop) dailyMaxPop = pVal;
 
-                                    if (t.includes('T00:00')) pop6h[0] = pVal;
-                                    else if (t.includes('T06:00')) pop6h[1] = pVal;
-                                    else if (t.includes('T12:00')) pop6h[2] = pVal;
-                                    else if (t.includes('T18:00')) pop6h[3] = pVal;
+                                            if (t.includes('T00:00')) pop6h[0] = pVal;
+                                            else if (t.includes('T06:00')) pop6h[1] = pVal;
+                                            else if (t.includes('T12:00')) pop6h[2] = pVal;
+                                            else if (t.includes('T18:00')) pop6h[3] = pVal;
+                                        }
+                                    }
+                                });
+                            }
+
+                            const tempSeries = jmaData[0]?.timeSeries?.[2];
+                            const tempArea = tempSeries?.areas?.[0];
+                            const tempDefines = tempSeries?.timeDefines || [];
+                            const tempVals = tempArea?.temps || [];
+
+                            tempDefines.forEach((t, idx) => {
+                                if (t.startsWith(dateStr) && tempVals[idx] !== undefined && tempVals[idx] !== '') {
+                                    const val = parseInt(tempVals[idx], 10);
+                                    if (!isNaN(val)) {
+                                        if (t.includes('09:00') || t.includes('15:00')) {
+                                            if (maxTemp === null || val > maxTemp) maxTemp = val;
+                                        } else {
+                                            if (minTemp === null || val < minTemp) minTemp = val;
+                                        }
+                                    }
                                 }
                             });
-                        }
 
-                        const tempSeries = jmaData[0]?.timeSeries?.[2];
-                        const tempArea = tempSeries?.areas?.[0];
-                        const tempDefines = tempSeries?.timeDefines || [];
-                        const tempVals = tempArea?.temps || [];
-
-                        tempDefines.forEach((t, idx) => {
-                            if (t.startsWith(dateStr) && tempVals[idx] !== undefined && tempVals[idx] !== '') {
-                                const val = parseInt(tempVals[idx], 10);
-                                if (!isNaN(val)) {
-                                    if (t.includes('09:00') || t.includes('15:00')) {
-                                        if (maxTemp === null || val > maxTemp) maxTemp = val;
-                                    } else {
-                                        if (minTemp === null || val < minTemp) minTemp = val;
+                            if ((minTemp === null || maxTemp === null) && jmaData[1]?.timeSeries?.[1]) {
+                                const weekArea = jmaData[1].timeSeries[1].areas?.[0];
+                                const weekDefines = jmaData[1].timeSeries[1].timeDefines || [];
+                                const weekIdx = weekDefines.findIndex(t => t.startsWith(dateStr));
+                                if (weekIdx !== -1 && weekArea) {
+                                    if (minTemp === null && weekArea.tempsMin?.[weekIdx] !== undefined && weekArea.tempsMin[weekIdx] !== '') {
+                                        const parsedMin = parseInt(weekArea.tempsMin[weekIdx], 10);
+                                        if (!isNaN(parsedMin)) minTemp = parsedMin;
+                                    }
+                                    if (maxTemp === null && weekArea.tempsMax?.[weekIdx] !== undefined && weekArea.tempsMax[weekIdx] !== '') {
+                                        const parsedMax = parseInt(weekArea.tempsMax[weekIdx], 10);
+                                        if (!isNaN(parsedMax)) maxTemp = parsedMax;
                                     }
                                 }
                             }
-                        });
-
-                        if ((minTemp === null || maxTemp === null) && jmaData[1]?.timeSeries?.[1]) {
-                            const weekArea = jmaData[1].timeSeries[1].areas?.[0];
-                            const weekDefines = jmaData[1].timeSeries[1].timeDefines || [];
-                            const weekIdx = weekDefines.findIndex(t => t.startsWith(dateStr));
-                            if (weekIdx !== -1 && weekArea) {
-                                if (minTemp === null && weekArea.tempsMin?.[weekIdx]) minTemp = parseInt(weekArea.tempsMin[weekIdx], 10);
-                                if (maxTemp === null && weekArea.tempsMax?.[weekIdx]) maxTemp = parseInt(weekArea.tempsMax[weekIdx], 10);
-                            }
+                        } catch (jmaErr) {
+                            console.warn("JMA parsing warning:", jmaErr);
                         }
                     }
 
@@ -1561,16 +1549,16 @@
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
                         if (mIdx !== -1) {
-                            if (minTemp === null && daily.temperature_2m_min?.[mIdx] !== undefined) {
+                            if (minTemp === null && daily.temperature_2m_min?.[mIdx] !== undefined && daily.temperature_2m_min[mIdx] !== null) {
                                 minTemp = Math.round(daily.temperature_2m_min[mIdx]);
                             }
-                            if (maxTemp === null && daily.temperature_2m_max?.[mIdx] !== undefined) {
+                            if (maxTemp === null && daily.temperature_2m_max?.[mIdx] !== undefined && daily.temperature_2m_max[mIdx] !== null) {
                                 maxTemp = Math.round(daily.temperature_2m_max[mIdx]);
                             }
-                            if (daily.windspeed_10m_max?.[mIdx] !== undefined) {
+                            if (daily.windspeed_10m_max?.[mIdx] !== undefined && daily.windspeed_10m_max[mIdx] !== null) {
                                 maxWindSpeed = parseFloat((daily.windspeed_10m_max[mIdx] / 3.6).toFixed(1));
                             }
-                            if (dailyMaxPop === null && daily.precipitation_probability_max?.[mIdx] !== undefined) {
+                            if (dailyMaxPop === null && daily.precipitation_probability_max?.[mIdx] !== undefined && daily.precipitation_probability_max[mIdx] !== null) {
                                 dailyMaxPop = daily.precipitation_probability_max[mIdx];
                             }
                         }
@@ -1578,57 +1566,56 @@
 
                     const hourly = meteoData?.hourly;
                     if (hourly && Array.isArray(hourly.time)) {
-                        const mMorningIdx = hourly.time.indexOf(`${dateStr}T08:00`);
-                        const mNoonIdx = hourly.time.indexOf(`${dateStr}T14:00`);
-                        const mNightIdx = hourly.time.indexOf(`${dateStr}T20:00`);
+                        const hTime = hourly.time;
+                        const hTemp = hourly.temperature_2m || [];
+                        const hHumidity = hourly.relative_humidity_2m || [];
+                        const hApparent = hourly.apparent_temperature || [];
+                        const hPop = hourly.precipitation_probability || [];
+                        const hPrecip = hourly.precipitation || [];
+                        const hWeather = hourly.weathercode || [];
+                        const hWind = hourly.windspeed_10m || [];
 
-                        if (mMorningIdx !== -1 && hourly.apparent_temperature?.[mMorningIdx] !== undefined) {
-                            morningTemp = Math.round(hourly.apparent_temperature[mMorningIdx]);
-                        } else if (mMorningIdx !== -1 && hourly.temperature_2m?.[mMorningIdx] !== undefined) {
-                            morningTemp = Math.round(hourly.temperature_2m[mMorningIdx]);
-                        }
+                        const findHourVal = (targetHour) => {
+                            const prefix = `${dateStr}T${String(targetHour).padStart(2, '0')}`;
+                            const idx = hTime.findIndex(t => t.startsWith(prefix));
+                            if (idx !== -1 && hTemp[idx] !== undefined && hTemp[idx] !== null) {
+                                return Math.round(hTemp[idx]);
+                            }
+                            return null;
+                        };
 
-                        if (mNoonIdx !== -1 && hourly.apparent_temperature?.[mNoonIdx] !== undefined) {
-                            noonTemp = Math.round(hourly.apparent_temperature[mNoonIdx]);
-                        } else if (mNoonIdx !== -1 && hourly.temperature_2m?.[mNoonIdx] !== undefined) {
-                            noonTemp = Math.round(hourly.temperature_2m[mNoonIdx]);
-                        }
+                        morningTemp = findHourVal(8);
+                        noonTemp = findHourVal(14);
+                        nightTemp = findHourVal(20);
 
-                        if (mNightIdx !== -1 && hourly.apparent_temperature?.[mNightIdx] !== undefined) {
-                            nightTemp = Math.round(hourly.apparent_temperature[mNightIdx]);
-                        } else if (mNightIdx !== -1 && hourly.temperature_2m?.[mNightIdx] !== undefined) {
-                            nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
-                        }
+                        // 【服装判定基準】10時〜15時の体感温度平均値
+                        let targetHoursApparent = [];
+                        for (let h = 10; h <= 15; h++) {
+                            const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
+                            const idx = hTime.findIndex(t => t.startsWith(prefix));
+                            if (idx !== -1) {
+                                const t = hTemp[idx];
+                                const rh = hHumidity[idx] ?? 50;
+                                const ws = (hWind[idx] ?? 10) / 3.6;
 
-                        let daytimeAdjustedTemps = [];
-                        for (let h = 8; h <= 17; h++) {
-                            const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
-                            const idx = hourly.time.indexOf(timeKey);
-                            if (idx !== -1 && hourly.apparent_temperature?.[idx] !== undefined) {
-                                let baseApparent = hourly.apparent_temperature[idx];
-                                const cloud = hourly.cloudcover?.[idx] ?? 50;
-                                const windKmh = hourly.windspeed_10m?.[idx] ?? 10;
-                                const windMs = windKmh / 3.6;
-
-                                if (cloud <= 25) {
-                                    baseApparent += 1.5;
-                                } else if (cloud >= 80) {
-                                    baseApparent -= 1.0;
+                                if (t !== undefined && t !== null) {
+                                    // 水蒸気圧（hPa）
+                                    const e = (rh / 100) * 6.105 * Math.exp((17.27 * t) / (237.7 + t));
+                                    // オーストラリア気象局式（AT式: 気温・湿度・風速連動）
+                                    const calculatedAt = t + (0.33 * e) - (0.70 * ws) - 4.0;
+                                    targetHoursApparent.push(calculatedAt);
+                                } else if (hApparent[idx] !== undefined && hApparent[idx] !== null) {
+                                    targetHoursApparent.push(hApparent[idx]);
                                 }
-
-                                if (windMs >= 5) {
-                                    baseApparent -= (windMs - 5) * 0.5;
-                                }
-
-                                daytimeAdjustedTemps.push(baseApparent);
                             }
                         }
 
-                        if (daytimeAdjustedTemps.length > 0) {
-                            const sum = daytimeAdjustedTemps.reduce((acc, cur) => acc + cur, 0);
-                            apparentTemp = Math.round(sum / daytimeAdjustedTemps.length);
+                        if (targetHoursApparent.length > 0) {
+                            const sum = targetHoursApparent.reduce((acc, cur) => acc + cur, 0);
+                            apparentTemp = Math.round(sum / targetHoursApparent.length);
                         }
 
+                        // 6時間スロット補完
                         const slotRanges = [
                             { start: 0, end: 5, index: 0 },
                             { start: 6, end: 11, index: 1 },
@@ -1640,34 +1627,39 @@
                             if (pop6h[slot.index] === null) {
                                 let maxSlotPop = 0;
                                 for (let h = slot.start; h <= slot.end; h++) {
-                                    const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
-                                    const idx = hourly.time.indexOf(timeKey);
-                                    if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined && hourly.precipitation_probability[idx] !== null) {
-                                        if (hourly.precipitation_probability[idx] > maxSlotPop) {
-                                            maxSlotPop = hourly.precipitation_probability[idx];
-                                        }
+                                    const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
+                                    const idx = hTime.findIndex(t => t.startsWith(prefix));
+                                    if (idx !== -1 && hPop[idx] !== undefined && hPop[idx] !== null) {
+                                        if (hPop[idx] > maxSlotPop) maxSlotPop = hPop[idx];
                                     }
                                 }
                                 pop6h[slot.index] = maxSlotPop;
                             }
                         });
 
+                        // 24時間データ構築
                         for (let h = 0; h < 24; h++) {
-                            const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
-                            const idx = hourly.time.indexOf(timeKey);
-                            const tVal = (idx !== -1 && hourly.temperature_2m?.[idx] !== undefined && hourly.temperature_2m[idx] !== null) ? Math.round(hourly.temperature_2m[idx]) : '--';
+                            const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
+                            const idx = hTime.findIndex(t => t.startsWith(prefix));
+                            const tVal = (idx !== -1 && hTemp[idx] !== undefined && hTemp[idx] !== null) ? Math.round(hTemp[idx]) : '--';
                             
-                            let pVal = (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined && hourly.precipitation_probability[idx] !== null) 
-                                ? Math.round(hourly.precipitation_probability[idx]) 
+                            let pVal = (idx !== -1 && hPop[idx] !== undefined && hPop[idx] !== null) 
+                                ? Math.round(hPop[idx]) 
                                 : null;
+
+                            if ((pVal === null || isNaN(pVal)) && idx !== -1 && hPrecip[idx] !== undefined && hPrecip[idx] !== null) {
+                                const pAmount = hPrecip[idx];
+                                if (pAmount >= 1.0) pVal = 90;
+                                else if (pAmount >= 0.1) pVal = 60;
+                            }
 
                             if (pVal === null || isNaN(pVal)) {
                                 const slotIdx = Math.floor(h / 6);
                                 pVal = (pop6h[slotIdx] !== null && pop6h[slotIdx] !== undefined) ? pop6h[slotIdx] : (dailyMaxPop ?? 10);
                             }
 
-                            const wCode = (idx !== -1 && hourly.weathercode?.[idx] !== undefined && hourly.weathercode[idx] !== null) ? hourly.weathercode[idx] : 0;
-                            const wSpeed = (idx !== -1 && hourly.windspeed_10m?.[idx] !== undefined && hourly.windspeed_10m[idx] !== null) ? Math.round(hourly.windspeed_10m[idx] / 3.6) : 0;
+                            const wCode = (idx !== -1 && hWeather[idx] !== undefined && hWeather[idx] !== null) ? hWeather[idx] : 0;
+                            const wSpeed = (idx !== -1 && hWind[idx] !== undefined && hWind[idx] !== null) ? Math.round(hWind[idx] / 3.6) : 0;
 
                             hourlyDetails.push({
                                 hour: String(h).padStart(2, '0'),
@@ -1679,11 +1671,10 @@
                         }
                     }
 
+                    // 安全なフォールバック
                     if (maxTemp === null) maxTemp = 20;
                     if (minTemp === null) minTemp = 14;
-                    if (minTemp >= maxTemp) {
-                        minTemp = maxTemp - 5;
-                    }
+                    if (minTemp >= maxTemp) minTemp = maxTemp - 5;
 
                     if (apparentTemp === null) {
                         apparentTemp = Math.round(maxTemp - (maxWindSpeed * 0.7));
@@ -1693,7 +1684,7 @@
                     if (nightTemp === null) nightTemp = minTemp + 3;
                     if (dailyMaxPop === null) dailyMaxPop = 10;
 
-                    pop6h = pop6h.map(p => (p !== null ? p : dailyMaxPop));
+                    pop6h = pop6h.map(p => (p !== null && p !== undefined ? p : dailyMaxPop));
 
                     return {
                         weatherText,
@@ -1735,7 +1726,6 @@
                     errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
                     errorBox.classList.remove('hidden');
                 }
-                throw err;
             } finally {
                 if (!isPullRefresh && btn && loading) {
                     btn.disabled = false;
@@ -1809,8 +1799,8 @@
                 subWindDirection.innerText = `${baseWind} (${windDesc})`;
             }
 
-            const tempDiff = Math.max(0, noonTemp - Math.min(morningTemp, nightTemp));
-            const outfit = evaluateClothingByCriteria(apparentTemp, maxWindSpeed, tempDiff, morningTemp, nightTemp);
+            // 指定された【手持ち服リスト】【判定基準】に基づく服装出力（余分なタグは一切追加しない）
+            const outfit = evaluateClothingByCriteria(apparentTemp);
             if (criteriaBadge) criteriaBadge.innerText = outfit.label;
             if (outfitSec) {
                 outfitSec.innerHTML = `
@@ -1972,11 +1962,8 @@
                 const dayText = dayNames[dayIndex];
 
                 let dayColorClass = 'text-[#374151]';
-                if (dayIndex === 0) {
-                    dayColorClass = 'text-[#e03131]';
-                } else if (dayIndex === 6) {
-                    dayColorClass = 'text-[#007aff]';
-                }
+                if (dayIndex === 0) dayColorClass = 'text-[#e03131]';
+                else if (dayIndex === 6) dayColorClass = 'text-[#007aff]';
 
                 let maxT = null;
                 let minT = null;
@@ -1998,23 +1985,25 @@
                 const jmaTIdx = jmaTempTimes.findIndex(t => t.startsWith(dateStr));
                 if (jmaTIdx !== -1 && jmaTempArea) {
                     if (jmaTempArea.tempsMax?.[jmaTIdx] !== undefined && jmaTempArea.tempsMax[jmaTIdx] !== '') {
-                        maxT = parseInt(jmaTempArea.tempsMax[jmaTIdx], 10);
+                        const parsed = parseInt(jmaTempArea.tempsMax[jmaTIdx], 10);
+                        if (!isNaN(parsed)) maxT = parsed;
                     }
                     if (jmaTempArea.tempsMin?.[jmaTIdx] !== undefined && jmaTempArea.tempsMin[jmaTIdx] !== '') {
-                        minT = parseInt(jmaTempArea.tempsMin[jmaTIdx], 10);
+                        const parsed = parseInt(jmaTempArea.tempsMin[jmaTIdx], 10);
+                        if (!isNaN(parsed)) minT = parsed;
                     }
                 }
 
                 if (meteoDaily && Array.isArray(meteoDaily.time)) {
                     const mIdx = meteoDaily.time.indexOf(dateStr);
                     if (mIdx !== -1) {
-                        if (maxT === null && meteoDaily.temperature_2m_max?.[mIdx] !== undefined) {
+                        if (maxT === null && meteoDaily.temperature_2m_max?.[mIdx] !== undefined && meteoDaily.temperature_2m_max[mIdx] !== null) {
                             maxT = Math.round(meteoDaily.temperature_2m_max[mIdx]);
                         }
-                        if (minT === null && meteoDaily.temperature_2m_min?.[mIdx] !== undefined) {
+                        if (minT === null && meteoDaily.temperature_2m_min?.[mIdx] !== undefined && meteoDaily.temperature_2m_min[mIdx] !== null) {
                             minT = Math.round(meteoDaily.temperature_2m_min[mIdx]);
                         }
-                        if (pop === null && meteoDaily.precipitation_probability_max?.[mIdx] !== undefined) {
+                        if (pop === null && meteoDaily.precipitation_probability_max?.[mIdx] !== undefined && meteoDaily.precipitation_probability_max[mIdx] !== null) {
                             pop = meteoDaily.precipitation_probability_max[mIdx];
                         }
                         if (!weatherCode && meteoDaily.weathercode?.[mIdx] !== undefined) {
@@ -2034,7 +2023,6 @@
                 const iconSvg = renderWeeklyListIcon(weatherCode, '');
                 const labelText = `${dateNum}日(${dayText})`;
 
-                // 行をタップすると6時間ポップアップを開く
                 return `
                     <div onclick="openDayPop6hModal('${dateStr}', '${labelText}', ${pop})" class="flex items-center justify-between py-2.5 px-1.5 hover:bg-orange-50/60 active:bg-orange-100/60 rounded-xl cursor-pointer transition-all whitespace-nowrap" title="タップして6時間毎の降水確率を表示">
                         <div class="flex items-center gap-1 shrink-0 font-medium whitespace-nowrap min-w-[56px]">
@@ -2065,7 +2053,6 @@
                             </span>
                         </div>
 
-                        <!-- タップ誘導用の小さな矢印アイコン -->
                         <div class="text-[#c7c7cc] text-[14px] shrink-0 pl-0.5">
                             ›
                         </div>

@@ -1,8 +1,8 @@
 {
   "name": "明日の服装予報",
   "short_name": "服装予報",
-  "start_url": "./index.html",
   "display": "standalone",
+  "start_url": "index.html",
   "background_color": "#f2f2f7",
   "theme_color": "#f2f2f7",
   "icons": [
