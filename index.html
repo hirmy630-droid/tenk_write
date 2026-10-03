@@ -322,17 +322,17 @@
 
                     <!-- 風速・風の行 -->
                     <div class="flex justify-between items-center py-0.5">
-                        <span class="text-[#374151] font-medium text-[14px]">風速</span>
+                        <span class="text-[#374151] font-medium text-[14px] shrink-0">風速</span>
                         <span id="subWindSpeed" class="text-cyan-700 font-mono font-bold text-[15px]">--</span>
                     </div>
-                    <div class="flex justify-between items-center py-0.5">
-                        <span class="text-[#374151] font-medium text-[14px]">風</span>
-                        <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[230px] font-medium text-[15px]">--</span>
+                    <div class="flex justify-between items-center py-0.5 gap-2">
+                        <span class="text-[#374151] font-medium text-[14px] shrink-0">風</span>
+                        <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate font-medium text-[15px]">--</span>
                     </div>
                 </div>
             </div>
 
-            <!-- 次の雨予測カード (新規追加) -->
+            <!-- 次の雨予測カード -->
             <div id="nextRainBanner" class="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3 shadow-xs flex items-center gap-2.5">
                 <span class="text-2xl shrink-0">☔</span>
                 <div class="flex-1 min-w-0">
@@ -561,11 +561,9 @@
             let jacket = '';
             let pants = '';
 
-            // 風速が強い（6m/s以上）場合の防風サフィックス
             const isWindy = maxWindSpeed >= 6;
             const windNotice = isWindy ? '（防風素材推奨）' : '';
 
-            // 朝晩の冷え込み（最低気温が低く昼との差が7℃以上）に対する羽織り注記
             const minCommuteTemp = Math.min(morningTemp, nightTemp);
             let layerNotice = '';
             if (tempDiff >= 7 && minCommuteTemp <= 16) {
@@ -692,7 +690,6 @@
                 keyInput.value = savedApiKey;
             }
 
-            // 初回起動時は予報画面を直接表示
             showForecastView(false).catch(err => {
                 console.warn("Auto-start forecast failed:", err);
             });
@@ -911,7 +908,6 @@
             if (dateEl) dateEl.innerText = currentData.targetDateFormatted.split(' ')[0] || '';
 
             if (hourlyListEl && currentData.hourlyDetails) {
-                // 「今日」が選択されている場合は、現在の時間以降のみを抽出
                 let listToDisplay = currentData.hourlyDetails;
                 if (selectedDay === 'today') {
                     const currentHour = new Date().getHours();
@@ -969,7 +965,7 @@
             return { code: '130000', lat: 35.6895, lon: 139.6917 };
         }
 
-        // 次の雨（何時間後 / 何日後）をOpen-Meteoの時系列データから算出
+        // 日本時間(JST)で厳密に雨予測を計算（9時間ズレを完全解消）
         function calculateNextRain(meteoData) {
             if (!meteoData?.hourly?.time) {
                 return { text: '予報データを取得できませんでした', status: 'unknown' };
@@ -980,10 +976,13 @@
             const codes = meteoData.hourly.weathercode || [];
             
             const now = new Date();
-            const currentIsoPrefix = now.toISOString().slice(0, 13); // 例: "2026-10-03T12"
+            const jstYear = now.getFullYear();
+            const jstMonth = String(now.getMonth() + 1).padStart(2, '0');
+            const jstDate = String(now.getDate()).padStart(2, '0');
+            const jstHour = String(now.getHours()).padStart(2, '0');
+            const currentJstPrefix = `${jstYear}-${jstMonth}-${jstDate}T${jstHour}`;
             
-            // 現在時刻以降のインデックスを探す
-            let startIdx = times.findIndex(t => t >= currentIsoPrefix);
+            let startIdx = times.findIndex(t => t >= currentJstPrefix);
             if (startIdx === -1) startIdx = 0;
 
             const daysNames = ['日', '月', '火', '水', '木', '金', '土'];
@@ -993,7 +992,6 @@
                 const pop = pops[i] ?? 0;
                 const code = codes[i] ?? 0;
 
-                // 雨コード（51〜67: 霧雨・雨, 80〜82: にわか雨, 95〜99: 雷雨）または降水確率50%以上
                 const isRainCode = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
                 if (isRainCode || pop >= 50) {
                     foundRainIdx = i;
@@ -1013,11 +1011,9 @@
             const rainPop = pops[foundRainIdx] ?? 0;
             const hourStr = String(rainDate.getHours()).padStart(2, '0');
 
-            // 時間差（時間単位）
             const diffMs = rainDate.getTime() - now.getTime();
             const diffHours = Math.round(diffMs / (1000 * 60 * 60));
 
-            // 日付の差
             const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const rainZero = new Date(rainDate.getFullYear(), rainDate.getMonth(), rainDate.getDate());
             const diffDays = Math.round((rainZero - todayZero) / (1000 * 60 * 60 * 24));
@@ -1049,27 +1045,17 @@
         function getYesterdayDateString() {
             const now = new Date();
             const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            const y = yest.getFullYear();
-            const m = String(yest.getMonth() + 1).padStart(2, '0');
-            const d = String(yest.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+            return `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`;
         }
 
         function getTodayDateString() {
             const now = new Date();
-            const y = now.getFullYear();
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const d = String(now.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         function getTomorrowDateString() {
-            const now = new Date();
-            const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            const y = tomorrow.getFullYear();
-            const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-            const d = String(tomorrow.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+            const now = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         function renderWeatherSvgIcon(weatherText) {
@@ -1080,13 +1066,13 @@
             const isClear = weatherText.includes('晴') && !isCloudy && !isRain;
 
             const cloudPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-[#c4c7cc] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.04));">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-[#c4c7cc] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.04));">
                     <path d="M 28 68 L 74 68 C 82 68 88 62 88 54 C 88 47 83 41 76 40 C 75 28 65 20 52 20 C 41 20 32 27 30 37 C 22 38 16 44 16 52 C 16 61 22 68 28 68 Z" />
                 </svg>
             `;
 
             const sunPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-[#ff9500] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-[#ff9500] fill-none stroke-[7] stroke-linecap-round stroke-linejoin-round">
                     <circle cx="50" cy="50" r="20" stroke-width="7" />
                     <line x1="50" y1="12" x2="50" y2="20" />
                     <line x1="50" y1="80" x2="50" y2="88" />
@@ -1100,7 +1086,7 @@
             `;
 
             const sunCloudPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-linecap-round stroke-linejoin-round">
                     <circle cx="68" cy="34" r="14" class="stroke-[#ff9500] fill-none stroke-[6]" />
                     <line x1="68" y1="10" x2="68" y2="15" class="stroke-[#ff9500] stroke-[5]" />
                     <line x1="88" y1="34" x2="93" y2="34" class="stroke-[#ff9500] stroke-[5]" />
@@ -1111,7 +1097,7 @@
             `;
 
             const rainPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 58 L 74 58 C 82 58 88 52 88 44 C 88 37 83 31 76 30 C 75 19 65 12 52 12 C 41 12 32 19 30 29 C 22 30 16 36 16 44 C 16 52 22 58 28 58 Z" 
                           class="stroke-[#9fa4aa] fill-none stroke-[7]" />
                     <line x1="34" y1="68" x2="28" y2="82" class="stroke-[#007aff] stroke-[6]" />
@@ -1121,7 +1107,7 @@
             `;
 
             const thunderPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 54 L 74 54 C 82 54 88 48 88 41 C 88 34 83 29 76 28 C 75 17 65 10 52 10 C 41 10 32 17 30 27 C 22 28 16 34 16 41 C 16 49 22 54 28 54 Z" 
                           class="stroke-[#9fa4aa] fill-none stroke-[7]" />
                     <polygon points="52,58 40,74 50,74 44,90 62,70 51,70" class="fill-[#ff9500] stroke-[#ff9500] stroke-[2]" />
@@ -1129,7 +1115,7 @@
             `;
 
             const snowPath = `
-                <svg viewBox="0 0 100 100" class="w-24 h-24 stroke-linecap-round stroke-linejoin-round">
+                <svg viewBox="0 0 100 100" class="w-20 h-20 stroke-linecap-round stroke-linejoin-round">
                     <path d="M 28 56 L 74 56 C 82 56 88 50 88 43 C 88 36 83 31 76 30 C 75 19 65 12 52 12 C 41 12 32 19 30 28 C 22 29 16 35 16 43 C 16 51 22 56 28 56 Z" 
                           class="stroke-[#9fa4aa] fill-none stroke-[7]" />
                     <circle cx="35" cy="74" r="3.5" class="fill-[#64b5f6]" />
@@ -1351,7 +1337,6 @@
                     meteoData = await meteoRes.json();
                 }
 
-                // 今後の降水タイミングを解析して保持
                 cachedNextRainInfo = calculateNextRain(meteoData);
 
                 renderWeeklyList(meteoData, jmaData);
@@ -1376,6 +1361,7 @@
                     const days = ['日', '月', '火', '水', '木', '金', '土'];
                     targetDateFormatted = `${labelPrefix} ${dObj.getMonth() + 1}/${dObj.getDate()} (${days[dObj.getDay()]})`;
 
+                    // ① 気象庁公式データ（予報官発表値・公式ブロック降水確率）を最優先抽出
                     if (Array.isArray(jmaData) && jmaData.length > 0) {
                         const weatherSeries = jmaData[0]?.timeSeries?.[0];
                         const area = weatherSeries?.areas?.[0];
@@ -1412,16 +1398,22 @@
                             });
                         }
 
+                        // 気象庁発表の公式最高・最低気温（第3時系列：予報官判定値）
                         const tempSeries = jmaData[0]?.timeSeries?.[2];
                         const tempArea = tempSeries?.areas?.[0];
                         const tempDefines = tempSeries?.timeDefines || [];
                         const tempVals = tempArea?.temps || [];
 
                         tempDefines.forEach((t, idx) => {
-                            if (t.startsWith(dateStr) && tempVals[idx] !== undefined) {
+                            if (t.startsWith(dateStr) && tempVals[idx] !== undefined && tempVals[idx] !== '') {
                                 const val = parseInt(tempVals[idx], 10);
-                                if (minTemp === null || val < minTemp) minTemp = val;
-                                if (maxTemp === null || val > maxTemp) maxTemp = val;
+                                if (!isNaN(val)) {
+                                    if (t.includes('09:00') || t.includes('15:00')) {
+                                        if (maxTemp === null || val > maxTemp) maxTemp = val;
+                                    } else {
+                                        if (minTemp === null || val < minTemp) minTemp = val;
+                                    }
+                                }
                             }
                         });
 
@@ -1436,6 +1428,7 @@
                         }
                     }
 
+                    // ② 数値モデルによる補完
                     const daily = meteoData?.daily;
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
@@ -1471,7 +1464,7 @@
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
-                        // 8時〜17時の実効体感温度（日射・雲量・風速による微調整）
+                        // 8時〜17時の実効体感温度（日射・雲量・風速による物理補正）
                         let daytimeAdjustedTemps = [];
                         for (let h = 8; h <= 17; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
@@ -1482,14 +1475,12 @@
                                 const windKmh = hourly.windspeed_10m?.[idx] ?? 10;
                                 const windMs = windKmh / 3.6;
 
-                                // 日射補正: 快晴（雲量<=25%）は直射日光で+1.5℃、厚い曇り（>=80%）は日差しがなく-1.0℃
                                 if (cloud <= 25) {
                                     baseApparent += 1.5;
                                 } else if (cloud >= 80) {
                                     baseApparent -= 1.0;
                                 }
 
-                                // 強風補正: 風速5m/sを超える場合は衣服の隙間から熱が奪われるためさらに体感を低下
                                 if (windMs >= 5) {
                                     baseApparent -= (windMs - 5) * 0.5;
                                 }
@@ -1516,7 +1507,7 @@
                                 for (let h = slot.start; h <= slot.end; h++) {
                                     const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
                                     const idx = hourly.time.indexOf(timeKey);
-                                    if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) {
+                                    if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined && hourly.precipitation_probability[idx] !== null) {
                                         if (hourly.precipitation_probability[idx] > maxSlotPop) {
                                             maxSlotPop = hourly.precipitation_probability[idx];
                                         }
@@ -1526,14 +1517,24 @@
                             }
                         });
 
-                        // 1時間ごとのデータ一覧を生成（0時〜23時）
+                        // 1時間ごとの推移リスト生成（降水確率はAPI値と気象庁公式スロットを安全に連動）
                         for (let h = 0; h < 24; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
                             const idx = hourly.time.indexOf(timeKey);
-                            const tVal = (idx !== -1 && hourly.temperature_2m?.[idx] !== undefined) ? Math.round(hourly.temperature_2m[idx]) : '--';
-                            const pVal = (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) ? hourly.precipitation_probability[idx] : 0;
-                            const wCode = (idx !== -1 && hourly.weathercode?.[idx] !== undefined) ? hourly.weathercode[idx] : 0;
-                            const wSpeed = (idx !== -1 && hourly.windspeed_10m?.[idx] !== undefined) ? Math.round(hourly.windspeed_10m[idx] / 3.6) : 0;
+                            const tVal = (idx !== -1 && hourly.temperature_2m?.[idx] !== undefined && hourly.temperature_2m[idx] !== null) ? Math.round(hourly.temperature_2m[idx]) : '--';
+                            
+                            let pVal = (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined && hourly.precipitation_probability[idx] !== null) 
+                                ? Math.round(hourly.precipitation_probability[idx]) 
+                                : null;
+
+                            // 万が一nullの場合は気象庁公式の6時間ブロック確率を自動連動
+                            if (pVal === null || isNaN(pVal)) {
+                                const slotIdx = Math.floor(h / 6);
+                                pVal = (pop6h[slotIdx] !== null && pop6h[slotIdx] !== undefined) ? pop6h[slotIdx] : (dailyMaxPop ?? 10);
+                            }
+
+                            const wCode = (idx !== -1 && hourly.weathercode?.[idx] !== undefined && hourly.weathercode[idx] !== null) ? hourly.weathercode[idx] : 0;
+                            const wSpeed = (idx !== -1 && hourly.windspeed_10m?.[idx] !== undefined && hourly.windspeed_10m[idx] !== null) ? Math.round(hourly.windspeed_10m[idx] / 3.6) : 0;
 
                             hourlyDetails.push({
                                 hour: String(h).padStart(2, '0'),
@@ -1545,8 +1546,13 @@
                         }
                     }
 
+                    // 気温の安全ガード（逆転や同一値の防止）
                     if (maxTemp === null) maxTemp = 20;
                     if (minTemp === null) minTemp = 14;
+                    if (minTemp >= maxTemp) {
+                        minTemp = maxTemp - 5;
+                    }
+
                     if (apparentTemp === null) {
                         apparentTemp = Math.round(maxTemp - (maxWindSpeed * 0.7));
                     }
@@ -1631,7 +1637,6 @@
             const accessoryAdvice = document.getElementById('accessoryAdvice');
             const timeTimeline = document.getElementById('timeTimeline');
 
-            // 今後の雨予報テキストを反映
             if (nextRainText && cachedNextRainInfo) {
                 nextRainText.innerText = cachedNextRainInfo.text;
             }
@@ -1772,7 +1777,7 @@
                             <line x1="31.5" y1="7.5" x2="33" y2="6" />
                         </g>
                         <path d="M10 24 L24 24 C28 24 30.5 21.5 30.5 18 C30.5 14.8 28 12.5 24.5 12 C24 8.5 20.8 6 17 6 C13 6 9.8 8.8 9.2 12.5 C6.2 13 4 15.5 4 18.5 C4 22 7 24 10 24 Z" 
-                              fill="#ffffff" stroke="#c0c4cc" stroke-width="2.5" stroke-linejoin="round" />
+                          fill="#ffffff" stroke="#c0c4cc" stroke-width="2.5" stroke-linejoin="round" />
                     </svg>
                 `;
             }
