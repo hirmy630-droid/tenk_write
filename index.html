@@ -345,12 +345,12 @@
 
             <!-- Outfit Section -->
             <div class="bg-orange-50/70 rounded-2xl p-3 border border-orange-200 shadow-sm space-y-2">
-                <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5">
-                    <div class="flex items-center gap-1.5">
+                <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5 gap-2">
+                    <div class="flex items-center gap-1.5 shrink-0">
                         <span class="text-base">👔</span>
-                        <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider">推奨服装</h3>
+                        <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider whitespace-nowrap">推奨服装</h3>
                     </div>
-                    <span id="criteriaBadge" class="text-[13px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold">--</span>
+                    <span id="criteriaBadge" class="text-[12px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold whitespace-nowrap shrink-0">--</span>
                 </div>
                 <div id="outfitSection" class="space-y-1.5"></div>
                 
@@ -573,23 +573,23 @@
             }
 
             if (apparentTemp >= 25) {
-                label = '25℃以上 (夏日・暖気)';
+                label = '25℃以上 (夏日)';
                 jacket = `半袖シャツ${isWindy ? ' ＋ 薄手の風除け' : ''}${layerNotice}`;
                 pants = '通気性の良いズボン';
             } else if (apparentTemp >= 20) {
-                label = '20℃〜24℃ (快適・過ごしやすい)';
+                label = '20℃〜24℃ (快適)';
                 jacket = `長袖シャツ${windNotice}${layerNotice}`;
                 pants = 'ズボン';
             } else if (apparentTemp >= 16) {
-                label = '16℃〜19℃ (肌寒い・要羽織り)';
+                label = '16℃〜19℃ (肌寒い)';
                 jacket = `インナーシャツ ＋ 長袖シャツ ＋ ジャケット${windNotice}${layerNotice}`;
                 pants = 'ズボン';
             } else if (apparentTemp >= 11) {
-                label = '11℃〜15℃ (晩秋・初春の冷え込み)';
+                label = '11℃〜15℃ (肌寒い・冷え込み)';
                 jacket = `防寒インナー ＋ 長袖シャツ ＋ 軽防寒服${windNotice}${layerNotice}`;
                 pants = 'インナー ＋ ズボン';
             } else if (apparentTemp >= 6) {
-                label = '6℃〜10℃ (冬の本格寒さ)';
+                label = '6℃〜10℃ (冬の寒さ)';
                 jacket = `防寒インナー ＋ 長袖シャツ ＋ ジャケット ＋ 軽防寒服${windNotice}`;
                 pants = '防寒インナー ＋ 軽防寒ズボン';
             } else {
