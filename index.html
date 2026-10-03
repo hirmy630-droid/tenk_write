@@ -158,14 +158,14 @@
                         type="button" 
                         id="mainTabToday"
                         onclick="setTargetDay('today')" 
-                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563] hover:text-[#1c1c1e]">
+                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
                         今日
                     </button>
                     <button 
                         type="button" 
                         id="mainTabTomorrow"
                         onclick="setTargetDay('tomorrow')" 
-                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
+                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563] hover:text-[#1c1c1e]">
                         明日
                     </button>
                 </div>
@@ -244,14 +244,14 @@
                     type="button" 
                     id="resTabToday"
                     onclick="switchResultDay('today')" 
-                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563]">
+                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
                     今日
                 </button>
                 <button 
                     type="button" 
                     id="resTabTomorrow"
                     onclick="switchResultDay('tomorrow')" 
-                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
+                    class="ios-btn py-1 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563]">
                     明日
                 </button>
             </div>
@@ -296,13 +296,9 @@
                 <!-- サブ情報エリア（6時間置きの降水確率・風速・風） -->
                 <div class="mt-2 pt-2 border-t border-[#f2f2f7] space-y-2 text-[14px]">
                     <!-- タップで1時間ごとの天気をポップアップ表示 -->
-                    <div onclick="openHourlyModal()" class="cursor-pointer active:opacity-75 transition-opacity group" title="タップして1時間ごとの天気を表示">
+                    <div onclick="openHourlyModal()" class="cursor-pointer active:opacity-75 transition-opacity" title="タップして1時間ごとの天気を表示">
                         <div class="flex justify-between items-center mb-1">
-                            <span class="text-[#374151] text-[15px] font-bold flex items-center gap-1">
-                                <span>降水確率 (6時間毎)</span>
-                                <span class="text-[11px] text-[#007aff] font-normal group-hover:underline">詳細 ›</span>
-                            </span>
-                            <span class="text-[11px] text-[#8e8e93]">タップで1時間予報</span>
+                            <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
                         </div>
                         <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
@@ -332,6 +328,17 @@
                     <div class="flex justify-between items-center py-0.5">
                         <span class="text-[#374151] font-medium text-[14px]">風</span>
                         <span id="subWindDirection" class="text-[#1c1c1e] text-right truncate max-w-[230px] font-medium text-[15px]">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 次の雨予測カード (新規追加) -->
+            <div id="nextRainBanner" class="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3 shadow-xs flex items-center gap-2.5">
+                <span class="text-2xl shrink-0">☔</span>
+                <div class="flex-1 min-w-0">
+                    <div class="text-[12px] font-bold text-blue-700 tracking-wide uppercase">今後の降水タイミング</div>
+                    <div id="nextRainText" class="text-[14px] font-bold text-[#1c1c1e] leading-snug mt-0.5 truncate">
+                        計算中...
                     </div>
                 </div>
             </div>
@@ -414,6 +421,15 @@
                     <h3 id="hourlyModalTitle" class="text-[16px] font-bold text-[#1c1c1e] truncate">1時間ごとの天気</h3>
                 </div>
                 <span id="hourlyModalDate" class="text-[13px] text-[#4b5563] font-semibold">--</span>
+            </div>
+
+            <!-- 項目見出し行 -->
+            <div class="flex items-center justify-between px-2 py-1 text-[12px] font-bold text-[#6b7280] border-b border-[#f2f2f7] shrink-0 bg-[#f8f9fa] rounded-lg">
+                <span class="w-14 text-left">時間</span>
+                <span class="w-8 text-center">天気</span>
+                <span class="w-12 text-center">気温</span>
+                <span class="w-12 text-right">降水</span>
+                <span class="w-14 text-right">風速</span>
             </div>
 
             <!-- 1時間ごとのリスト -->
@@ -540,34 +556,45 @@
             '那覇':   { code: '471000', lat: 26.2124, lon: 127.6809 }
         };
 
-        function evaluateClothingByCriteria(apparentTemp) {
+        function evaluateClothingByCriteria(apparentTemp, maxWindSpeed = 3, tempDiff = 0, morningTemp = 15, nightTemp = 15) {
             let label = '';
             let jacket = '';
             let pants = '';
 
+            // 風速が強い（6m/s以上）場合の防風サフィックス
+            const isWindy = maxWindSpeed >= 6;
+            const windNotice = isWindy ? '（防風素材推奨）' : '';
+
+            // 朝晩の冷え込み（最低気温が低く昼との差が7℃以上）に対する羽織り注記
+            const minCommuteTemp = Math.min(morningTemp, nightTemp);
+            let layerNotice = '';
+            if (tempDiff >= 7 && minCommuteTemp <= 16) {
+                layerNotice = ` <span class="text-[13px] text-amber-700 block mt-0.5 font-normal">※朝晩は${minCommuteTemp}℃まで冷え込むため、脱ぎ着できる羽織りものが必須です</span>`;
+            }
+
             if (apparentTemp >= 25) {
                 label = '25℃以上 (夏日・暖気)';
-                jacket = '半袖シャツ';
-                pants = 'ズボン';
+                jacket = `半袖シャツ${isWindy ? ' ＋ 薄手の風除け' : ''}${layerNotice}`;
+                pants = '通気性の良いズボン';
             } else if (apparentTemp >= 20) {
-                label = '20℃〜24℃ (過ごしやすい)';
-                jacket = '長袖シャツ';
+                label = '20℃〜24℃ (快適・過ごしやすい)';
+                jacket = `長袖シャツ${windNotice}${layerNotice}`;
                 pants = 'ズボン';
             } else if (apparentTemp >= 16) {
                 label = '16℃〜19℃ (肌寒い・要羽織り)';
-                jacket = 'インナーシャツ ＋ 長袖シャツ ＋ ジャケット';
+                jacket = `インナーシャツ ＋ 長袖シャツ ＋ ジャケット${windNotice}${layerNotice}`;
                 pants = 'ズボン';
             } else if (apparentTemp >= 11) {
                 label = '11℃〜15℃ (晩秋・初春の冷え込み)';
-                jacket = '防寒インナー ＋ 長袖シャツ ＋ 軽防寒服';
+                jacket = `防寒インナー ＋ 長袖シャツ ＋ 軽防寒服${windNotice}${layerNotice}`;
                 pants = 'インナー ＋ ズボン';
             } else if (apparentTemp >= 6) {
                 label = '6℃〜10℃ (冬の本格寒さ)';
-                jacket = '防寒インナー ＋ 長袖シャツ ＋ ジャケット ＋ 軽防寒服';
+                jacket = `防寒インナー ＋ 長袖シャツ ＋ ジャケット ＋ 軽防寒服${windNotice}`;
                 pants = '防寒インナー ＋ 軽防寒ズボン';
             } else {
                 label = '5℃以下 (真冬の厳しい寒さ)';
-                jacket = '防寒インナー ＋ 長袖シャツ ＋ 重防寒服（ダウン等）';
+                jacket = `防寒インナー ＋ 長袖シャツ ＋ 重防寒服（ダウン等）${windNotice}`;
                 pants = '防寒インナー ＋ 防寒ズボン';
             }
 
@@ -584,20 +611,19 @@
 
         let locations = [];
         let activeLocation = '東京都品川区';
-        let selectedDay = 'tomorrow';
+        let selectedDay = 'today';
         let cachedForecastData = null;
         let lastFetchedTimestamp = 0;
         let isRefreshing = false;
+        let cachedNextRainInfo = null;
 
         function setTargetDay(day) {
             selectedDay = day;
-            localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
             updateTabStyles();
         }
 
         function switchResultDay(day) {
             selectedDay = day;
-            localStorage.setItem(STORAGE_KEY_SELECTED_DAY, selectedDay);
             updateTabStyles();
             if (cachedForecastData && cachedForecastData[selectedDay]) {
                 renderForecastView(cachedForecastData[selectedDay]);
@@ -636,7 +662,6 @@
             const mainContainer = document.getElementById('mainScreenContainer');
             const forecastContainer = document.getElementById('forecastScreenContainer');
 
-            // 物理的にメイン画面を消し、予報画面のみを表示（透け・重なりを完全に遮断）
             if (mainContainer) mainContainer.classList.add('hidden');
             if (forecastContainer) forecastContainer.classList.remove('hidden');
 
@@ -647,7 +672,6 @@
             const mainContainer = document.getElementById('mainScreenContainer');
             const forecastContainer = document.getElementById('forecastScreenContainer');
 
-            // 予報画面を消し、メイン画面を表示
             if (forecastContainer) forecastContainer.classList.add('hidden');
             if (mainContainer) mainContainer.classList.remove('hidden');
         }
@@ -656,10 +680,7 @@
             loadLocations();
             renderLocations();
 
-            const savedDay = localStorage.getItem(STORAGE_KEY_SELECTED_DAY);
-            if (savedDay === 'today' || savedDay === 'tomorrow') {
-                selectedDay = savedDay;
-            }
+            selectedDay = 'today';
 
             updateTabStyles();
             initPullToRefresh();
@@ -677,7 +698,6 @@
             });
         });
 
-        // 復帰時の自動再取得（10分以上経過時）
         function checkAndAutoRefresh() {
             const now = Date.now();
             if (now - lastFetchedTimestamp >= 10 * 60 * 1000) {
@@ -831,18 +851,13 @@
                 if (status) {
                     status.innerText = '追加完了';
                     status.classList.remove('opacity-0');
-                    setTimeout(() => {
-                        if (status) status.classList.add('opacity-0');
-                    }, 1800);
+                    setTimeout(() => status.classList.add('opacity-0'), 1800);
                 }
             } else {
                 selectLocation(val);
             }
 
-            if (input) {
-                input.value = '';
-                input.blur();
-            }
+            if (input) input.value = '';
         }
 
         function handleDeleteLocation(locToDelete) {
@@ -851,9 +866,7 @@
                 if (status) {
                     status.innerText = '最後の1件は削除不可';
                     status.classList.remove('opacity-0');
-                    setTimeout(() => {
-                        if (status) status.classList.add('opacity-0');
-                    }, 2000);
+                    setTimeout(() => status.classList.add('opacity-0'), 2000);
                 }
                 return;
             }
@@ -915,11 +928,12 @@
                     hourlyListEl.innerHTML = listToDisplay.map(item => {
                         const iconSvg = renderWeeklyListIcon(item.weatherCode, '');
                         return `
-                            <div class="flex items-center justify-between py-2.5 px-2 hover:bg-[#f8f9fa] text-[14px] whitespace-nowrap">
-                                <div class="w-16 shrink-0 font-bold font-mono text-[#1c1c1e] whitespace-nowrap">${item.hour}:00</div>
-                                <div class="w-10 shrink-0 flex items-center justify-center">${iconSvg}</div>
-                                <div class="flex-1 font-mono font-bold text-center text-[#1c1c1e] text-[15px]">${item.temp}℃</div>
-                                <div class="w-14 shrink-0 font-mono font-bold text-right text-[#007aff] text-[15px]">${item.pop}%</div>
+                            <div class="flex items-center justify-between py-2 px-2 hover:bg-[#f8f9fa] text-[14px] whitespace-nowrap">
+                                <div class="w-14 shrink-0 font-bold font-mono text-[#1c1c1e] whitespace-nowrap">${item.hour}:00</div>
+                                <div class="w-8 shrink-0 flex items-center justify-center">${iconSvg}</div>
+                                <div class="w-12 shrink-0 font-mono font-bold text-center text-[#1c1c1e] text-[15px]">${item.temp}℃</div>
+                                <div class="w-12 shrink-0 font-mono font-bold text-right text-[#007aff] text-[14px]">${item.pop}%</div>
+                                <div class="w-14 shrink-0 font-mono font-bold text-right text-cyan-700 text-[14px]">${item.windSpeed}m/s</div>
                             </div>
                         `;
                     }).join('');
@@ -953,6 +967,92 @@
                 }
             }
             return { code: '130000', lat: 35.6895, lon: 139.6917 };
+        }
+
+        // 次の雨（何時間後 / 何日後）をOpen-Meteoの時系列データから算出
+        function calculateNextRain(meteoData) {
+            if (!meteoData?.hourly?.time) {
+                return { text: '予報データを取得できませんでした', status: 'unknown' };
+            }
+
+            const times = meteoData.hourly.time;
+            const pops = meteoData.hourly.precipitation_probability || [];
+            const codes = meteoData.hourly.weathercode || [];
+            
+            const now = new Date();
+            const currentIsoPrefix = now.toISOString().slice(0, 13); // 例: "2026-10-03T12"
+            
+            // 現在時刻以降のインデックスを探す
+            let startIdx = times.findIndex(t => t >= currentIsoPrefix);
+            if (startIdx === -1) startIdx = 0;
+
+            const daysNames = ['日', '月', '火', '水', '木', '金', '土'];
+            let foundRainIdx = -1;
+
+            for (let i = startIdx; i < times.length; i++) {
+                const pop = pops[i] ?? 0;
+                const code = codes[i] ?? 0;
+
+                // 雨コード（51〜67: 霧雨・雨, 80〜82: にわか雨, 95〜99: 雷雨）または降水確率50%以上
+                const isRainCode = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
+                if (isRainCode || pop >= 50) {
+                    foundRainIdx = i;
+                    break;
+                }
+            }
+
+            if (foundRainIdx === -1) {
+                return {
+                    text: 'この先1週間は雨の心配はありません ☀️',
+                    status: 'clear'
+                };
+            }
+
+            const targetTimeStr = times[foundRainIdx];
+            const rainDate = new Date(targetTimeStr);
+            const rainPop = pops[foundRainIdx] ?? 0;
+            const hourStr = String(rainDate.getHours()).padStart(2, '0');
+
+            // 時間差（時間単位）
+            const diffMs = rainDate.getTime() - now.getTime();
+            const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+
+            // 日付の差
+            const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const rainZero = new Date(rainDate.getFullYear(), rainDate.getMonth(), rainDate.getDate());
+            const diffDays = Math.round((rainZero - todayZero) / (1000 * 60 * 60 * 24));
+
+            if (diffHours <= 0) {
+                return {
+                    text: `現在、雨の予報が出ています（降水確率 ${rainPop}%）`,
+                    status: 'raining'
+                };
+            } else if (diffHours <= 24) {
+                return {
+                    text: `約${diffHours}時間後 (${hourStr}:00頃) から雨予報（降水確率 ${rainPop}%）`,
+                    status: 'hours'
+                };
+            } else if (diffDays === 1) {
+                return {
+                    text: `明日 (${hourStr}:00頃) から雨の予報です（降水確率 ${rainPop}%）`,
+                    status: 'tomorrow'
+                };
+            } else {
+                const dayName = daysNames[rainDate.getDay()];
+                return {
+                    text: `直近の雨は【${diffDays}日後・${dayName}曜日】の予報です（${rainDate.getMonth() + 1}/${rainDate.getDate()}）`,
+                    status: 'days'
+                };
+            }
+        }
+
+        function getYesterdayDateString() {
+            const now = new Date();
+            const yest = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const y = yest.getFullYear();
+            const m = String(yest.getMonth() + 1).padStart(2, '0');
+            const d = String(yest.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         }
 
         function getTodayDateString() {
@@ -1216,7 +1316,7 @@
                 const cacheBuster = `&_t=${Date.now()}`;
                 const jmaForecastUrl = `https://www.jma.go.jp/bosai/forecast/data/forecast/${areaCode}.json?_t=${Date.now()}`;
                 const jmaOverviewUrl = `https://www.jma.go.jp/bosai/forecast/data/overview_forecast/${areaCode}.json?_t=${Date.now()}`;
-                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
+                const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,cloudcover,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=10&past_days=1${cacheBuster}`;
 
                 const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
                     fetch(jmaForecastUrl).catch(() => null),
@@ -1250,6 +1350,9 @@
                 if (meteoRes && meteoRes.ok) {
                     meteoData = await meteoRes.json();
                 }
+
+                // 今後の降水タイミングを解析して保持
+                cachedNextRainInfo = calculateNextRain(meteoData);
 
                 renderWeeklyList(meteoData, jmaData);
 
@@ -1368,18 +1471,36 @@
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
-                        let daytimeApparentTemps = [];
+                        // 8時〜17時の実効体感温度（日射・雲量・風速による微調整）
+                        let daytimeAdjustedTemps = [];
                         for (let h = 8; h <= 17; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
                             const idx = hourly.time.indexOf(timeKey);
                             if (idx !== -1 && hourly.apparent_temperature?.[idx] !== undefined) {
-                                daytimeApparentTemps.push(hourly.apparent_temperature[idx]);
+                                let baseApparent = hourly.apparent_temperature[idx];
+                                const cloud = hourly.cloudcover?.[idx] ?? 50;
+                                const windKmh = hourly.windspeed_10m?.[idx] ?? 10;
+                                const windMs = windKmh / 3.6;
+
+                                // 日射補正: 快晴（雲量<=25%）は直射日光で+1.5℃、厚い曇り（>=80%）は日差しがなく-1.0℃
+                                if (cloud <= 25) {
+                                    baseApparent += 1.5;
+                                } else if (cloud >= 80) {
+                                    baseApparent -= 1.0;
+                                }
+
+                                // 強風補正: 風速5m/sを超える場合は衣服の隙間から熱が奪われるためさらに体感を低下
+                                if (windMs >= 5) {
+                                    baseApparent -= (windMs - 5) * 0.5;
+                                }
+
+                                daytimeAdjustedTemps.push(baseApparent);
                             }
                         }
 
-                        if (daytimeApparentTemps.length > 0) {
-                            const sum = daytimeApparentTemps.reduce((acc, cur) => acc + cur, 0);
-                            apparentTemp = Math.round(sum / daytimeApparentTemps.length);
+                        if (daytimeAdjustedTemps.length > 0) {
+                            const sum = daytimeAdjustedTemps.reduce((acc, cur) => acc + cur, 0);
+                            apparentTemp = Math.round(sum / daytimeAdjustedTemps.length);
                         }
 
                         const slotRanges = [
@@ -1412,12 +1533,14 @@
                             const tVal = (idx !== -1 && hourly.temperature_2m?.[idx] !== undefined) ? Math.round(hourly.temperature_2m[idx]) : '--';
                             const pVal = (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) ? hourly.precipitation_probability[idx] : 0;
                             const wCode = (idx !== -1 && hourly.weathercode?.[idx] !== undefined) ? hourly.weathercode[idx] : 0;
+                            const wSpeed = (idx !== -1 && hourly.windspeed_10m?.[idx] !== undefined) ? Math.round(hourly.windspeed_10m[idx] / 3.6) : 0;
 
                             hourlyDetails.push({
                                 hour: String(h).padStart(2, '0'),
                                 temp: tVal,
                                 pop: pVal,
-                                weatherCode: wCode
+                                weatherCode: wCode,
+                                windSpeed: wSpeed
                             });
                         }
                     }
@@ -1501,11 +1624,17 @@
 
             const subWindSpeed = document.getElementById('subWindSpeed');
             const subWindDirection = document.getElementById('subWindDirection');
+            const nextRainText = document.getElementById('nextRainText');
 
             const criteriaBadge = document.getElementById('criteriaBadge');
             const outfitSec = document.getElementById('outfitSection');
             const accessoryAdvice = document.getElementById('accessoryAdvice');
             const timeTimeline = document.getElementById('timeTimeline');
+
+            // 今後の雨予報テキストを反映
+            if (nextRainText && cachedNextRainInfo) {
+                nextRainText.innerText = cachedNextRainInfo.text;
+            }
 
             const { 
                 weatherText, 
@@ -1543,13 +1672,14 @@
                 subWindDirection.innerText = `${baseWind} (${windDesc})`;
             }
 
-            const outfit = evaluateClothingByCriteria(apparentTemp);
+            const tempDiff = Math.max(0, noonTemp - Math.min(morningTemp, nightTemp));
+            const outfit = evaluateClothingByCriteria(apparentTemp, maxWindSpeed, tempDiff, morningTemp, nightTemp);
             if (criteriaBadge) criteriaBadge.innerText = outfit.label;
             if (outfitSec) {
                 outfitSec.innerHTML = `
                     <div class="bg-white rounded-xl p-2.5 border border-orange-200/80 shadow-xs">
                         <div class="text-[14px] font-bold text-[#d97706] uppercase tracking-wider mb-0.5">【上着・トップス】</div>
-                        <div class="text-[#1c1c1e] font-bold text-[16px] leading-snug">${escapeHtml(outfit.jacket)}</div>
+                        <div class="text-[#1c1c1e] font-bold text-[16px] leading-snug">${outfit.jacket}</div>
                     </div>
                     <div class="bg-white rounded-xl p-2.5 border border-orange-200/80 shadow-xs">
                         <div class="text-[14px] font-bold text-[#d97706] uppercase tracking-wider mb-0.5">【ボトムス・ズボン】</div>
@@ -1802,14 +1932,14 @@
             listContainer.innerHTML = listHtml;
         }
 
-        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
                         registration.update();
-                    })
-                    .catch(() => {
-                        // オフラインキャッシュ未配備環境でのフォールバック
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    }, err => {
+                        console.log('ServiceWorker registration failed: ', err);
                     });
             });
         }
