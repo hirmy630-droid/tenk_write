@@ -1252,16 +1252,10 @@
                 const diffX = touchEndX - touchStartX;
                 const diffY = touchEndY - touchStartY;
 
+                // 左右どちらのスワイプでも、現在と逆の対象日（今日 ⇆ 明日）へ交互に切り替え
                 if (elapsedTime <= MAX_TIME && Math.abs(diffX) >= SWIPE_THRESHOLD && Math.abs(diffY) <= RESTRAINT) {
-                    if (diffX < 0) {
-                        if (selectedDay === 'today') {
-                            switchResultDay('tomorrow');
-                        }
-                    } else {
-                        if (selectedDay === 'tomorrow') {
-                            switchResultDay('today');
-                        }
-                    }
+                    const nextDay = (selectedDay === 'today') ? 'tomorrow' : 'today';
+                    switchResultDay(nextDay);
                 }
             };
 
@@ -1417,18 +1411,19 @@
                             }
                         });
 
+                        // 【最重要改善】夕方発表などで短期データから気温が欠落した場合、気象庁公式の週間予報から確実に回収
                         if ((minTemp === null || maxTemp === null) && jmaData[1]?.timeSeries?.[1]) {
                             const weekArea = jmaData[1].timeSeries[1].areas?.[0];
                             const weekDefines = jmaData[1].timeSeries[1].timeDefines || [];
                             const weekIdx = weekDefines.findIndex(t => t.startsWith(dateStr));
                             if (weekIdx !== -1 && weekArea) {
-                                if (weekArea.tempsMin?.[weekIdx]) minTemp = parseInt(weekArea.tempsMin[weekIdx], 10);
-                                if (weekArea.tempsMax?.[weekIdx]) maxTemp = parseInt(weekArea.tempsMax[weekIdx], 10);
+                                if (minTemp === null && weekArea.tempsMin?.[weekIdx]) minTemp = parseInt(weekArea.tempsMin[weekIdx], 10);
+                                if (maxTemp === null && weekArea.tempsMax?.[weekIdx]) maxTemp = parseInt(weekArea.tempsMax[weekIdx], 10);
                             }
                         }
                     }
 
-                    // ② 数値モデルによる補完
+                    // ② 数値モデルによる補完（気象庁公式値が取得できない場合の安全ガード）
                     const daily = meteoData?.daily;
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
