@@ -25,7 +25,6 @@
             overflow: hidden;
         }
 
-        /* セーフエリア上部余白 */
         .safe-area-top {
             padding-top: calc(env(safe-area-inset-top, 16px) + 10px);
         }
@@ -377,6 +376,10 @@
                 <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium shrink-0 ml-2">--:-- 発表</span>
             </div>
 
+            <div class="flex items-center justify-between px-1 text-[11px] text-[#6b7280] font-medium bg-[#f8f9fa] py-1 rounded-lg">
+                <span>※ 日にちをタップで6時間毎の降水確率を表示</span>
+            </div>
+
             <div class="flex-1 overflow-y-auto overflow-x-hidden pr-1">
                 <div id="weeklyForecastList" class="divide-y divide-[#f2f2f7]">
                     <!-- JavaScriptで動的生成 -->
@@ -385,6 +388,65 @@
 
             <div class="pt-1 shrink-0 border-t border-[#e5e5ea]">
                 <button type="button" onclick="toggleOverviewModal(false)" class="ios-btn w-full bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] font-semibold text-[15px] py-2 rounded-xl border border-[#d1d1d6] shadow-sm">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 週間天気の個別日 6時間ごと降水確率ポップアップモーダル -->
+    <div id="dayPop6hModal" class="hidden fixed inset-0 z-[65] bg-black/40 backdrop-blur-sm flex items-center justify-center p-3.5">
+        <div class="bg-white border border-[#e5e5ea] rounded-2xl p-4 w-full max-w-sm shadow-2xl space-y-3.5 flex flex-col max-h-[85vh]">
+            <div class="flex items-center justify-between border-b border-[#e5e5ea] pb-2 shrink-0">
+                <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-lg shrink-0">💧</span>
+                    <h3 id="dayPop6hModalTitle" class="text-[16px] font-bold text-[#1c1c1e] truncate">6時間毎の降水確率</h3>
+                </div>
+                <span id="dayPop6hModalDate" class="text-[13px] text-[#007aff] font-bold">--</span>
+            </div>
+
+            <div class="space-y-2">
+                <div class="text-[13px] text-[#4b5563] font-medium flex items-center justify-between">
+                    <span>時間帯別の雨予報</span>
+                    <span id="dayPop6hSummaryText" class="text-[12px] font-bold text-[#ff9500]">--</span>
+                </div>
+
+                <!-- 6時間スロットグリッド -->
+                <div class="grid grid-cols-4 gap-1.5 text-center font-mono">
+                    <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
+                        <div class="text-[12px] text-[#4b5563] font-semibold">0-6時</div>
+                        <div id="dayPopSlot0" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
+                        <div id="dayPopTemp0" class="text-[11px] text-[#6b7280]">--℃</div>
+                    </div>
+                    <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
+                        <div class="text-[12px] text-[#4b5563] font-semibold">6-12時</div>
+                        <div id="dayPopSlot1" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
+                        <div id="dayPopTemp1" class="text-[11px] text-[#6b7280]">--℃</div>
+                    </div>
+                    <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
+                        <div class="text-[12px] text-[#4b5563] font-semibold">12-18時</div>
+                        <div id="dayPopSlot2" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
+                        <div id="dayPopTemp2" class="text-[11px] text-[#6b7280]">--℃</div>
+                    </div>
+                    <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
+                        <div class="text-[12px] text-[#4b5563] font-semibold">18-24時</div>
+                        <div id="dayPopSlot3" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
+                        <div id="dayPopTemp3" class="text-[11px] text-[#6b7280]">--℃</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- その日の雨・外出ワンポイントアドバイス -->
+            <div id="dayPop6hAdviceBox" class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-2.5 text-[13px] text-[#1c1c1e] leading-snug">
+                <!-- 動的生成 -->
+            </div>
+
+            <!-- ボタンエリア（週間一覧へ戻る & 閉じる） -->
+            <div class="pt-1.5 shrink-0 border-t border-[#e5e5ea] flex gap-2">
+                <button type="button" onclick="backToOverviewModal()" class="ios-btn flex-1 bg-[#ff9500] hover:bg-[#e08500] text-white font-semibold text-[14px] py-2 rounded-xl shadow-xs transition-colors">
+                    ← 週間予報に戻る
+                </button>
+                <button type="button" onclick="closeAllModals()" class="ios-btn px-4 bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#4b5563] font-semibold text-[14px] py-2 rounded-xl border border-[#d1d1d6] shadow-xs transition-colors">
                     閉じる
                 </button>
             </div>
@@ -588,6 +650,7 @@
         let activeLocation = '東京都品川区';
         let selectedDay = 'today';
         let cachedForecastData = null;
+        let cachedRawMeteoData = null; // 週間ポップアップ用の全時間帯キャッシュ
         let lastFetchedTimestamp = 0;
         let isRefreshing = false;
         let cachedNextRainInfo = null;
@@ -871,6 +934,109 @@
                 modal.classList.remove('hidden');
             } else {
                 modal.classList.add('hidden');
+            }
+        }
+
+        function closeAllModals() {
+            const overviewModal = document.getElementById('overviewModal');
+            const dayPop6hModal = document.getElementById('dayPop6hModal');
+            const hourlyModal = document.getElementById('hourlyModal');
+            if (overviewModal) overviewModal.classList.add('hidden');
+            if (dayPop6hModal) dayPop6hModal.classList.add('hidden');
+            if (hourlyModal) hourlyModal.classList.add('hidden');
+        }
+
+        function backToOverviewModal() {
+            const dayPop6hModal = document.getElementById('dayPop6hModal');
+            const overviewModal = document.getElementById('overviewModal');
+            if (dayPop6hModal) dayPop6hModal.classList.add('hidden');
+            if (overviewModal) overviewModal.classList.remove('hidden');
+        }
+
+        function openDayPop6hModal(dateStr, labelText, maxPopVal) {
+            const overviewModal = document.getElementById('overviewModal');
+            const dayPopModal = document.getElementById('dayPop6hModal');
+            const titleEl = document.getElementById('dayPop6hModalTitle');
+            const dateEl = document.getElementById('dayPop6hModalDate');
+            const summaryText = document.getElementById('dayPop6hSummaryText');
+            const adviceBox = document.getElementById('dayPop6hAdviceBox');
+
+            if (!dayPopModal) return;
+
+            // 週間モーダルから切り替え表示
+            if (overviewModal) overviewModal.classList.add('hidden');
+            dayPopModal.classList.remove('hidden');
+
+            if (titleEl) titleEl.innerText = `${activeLocation || '地点'} 降水予報`;
+            if (dateEl) dateEl.innerText = labelText;
+
+            // 6時間ごとの降水確率＆気温を計算（Open-Meteoの全時間帯キャッシュから抽出）
+            let pops = [0, 0, 0, 0];
+            let temps = ['--', '--', '--', '--'];
+
+            if (cachedRawMeteoData?.hourly?.time) {
+                const hourly = cachedRawMeteoData.hourly;
+                const slotRanges = [
+                    { start: 0, end: 5, idx: 0, midHour: 3 },
+                    { start: 6, end: 11, idx: 1, midHour: 9 },
+                    { start: 12, end: 17, idx: 2, midHour: 15 },
+                    { start: 18, end: 23, idx: 3, midHour: 21 }
+                ];
+
+                slotRanges.forEach(slot => {
+                    let maxP = 0;
+                    for (let h = slot.start; h <= slot.end; h++) {
+                        const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
+                        const idx = hourly.time.indexOf(timeKey);
+                        if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) {
+                            if (hourly.precipitation_probability[idx] > maxP) {
+                                maxP = hourly.precipitation_probability[idx];
+                            }
+                        }
+                    }
+                    pops[slot.idx] = maxP;
+
+                    const midKey = `${dateStr}T${String(slot.midHour).padStart(2, '0')}:00`;
+                    const midIdx = hourly.time.indexOf(midKey);
+                    if (midIdx !== -1 && hourly.temperature_2m?.[midIdx] !== undefined) {
+                        temps[slot.idx] = Math.round(hourly.temperature_2m[midIdx]);
+                    }
+                });
+            } else {
+                // キャッシュが万一無い場合の安全策
+                const fallbackPop = maxPopVal ?? 10;
+                pops = [fallbackPop, fallbackPop, fallbackPop, fallbackPop];
+            }
+
+            for (let i = 0; i < 4; i++) {
+                const popSlot = document.getElementById(`dayPopSlot${i}`);
+                const tempSlot = document.getElementById(`dayPopTemp${i}`);
+                if (popSlot) popSlot.innerText = `${pops[i]}%`;
+                if (tempSlot) tempSlot.innerText = (temps[i] !== '--') ? `約${temps[i]}℃` : '--';
+            }
+
+            const maxDailyPop = Math.max(...pops);
+            if (summaryText) {
+                if (maxDailyPop >= 60) {
+                    summaryText.innerText = '雨の可能性が高い';
+                    summaryText.className = 'text-[12px] font-bold text-[#e03131]';
+                } else if (maxDailyPop >= 30) {
+                    summaryText.innerText = '一時的に雨の可能性あり';
+                    summaryText.className = 'text-[12px] font-bold text-[#ff9500]';
+                } else {
+                    summaryText.innerText = '雨の心配は少なめ';
+                    summaryText.className = 'text-[12px] font-bold text-[#007aff]';
+                }
+            }
+
+            if (adviceBox) {
+                if (maxDailyPop >= 50) {
+                    adviceBox.innerHTML = `☔ <strong>雨具の用意が安心です</strong><br>降水確率が${maxDailyPop}%まで上がっています。外出時は折りたたみ傘をお持ちください。`;
+                } else if (maxDailyPop >= 30) {
+                    adviceBox.innerHTML = `🌤️ <strong>急な天候変化にご注意</strong><br>一時的なにわか雨の可能性があります。空模様の変化にご留意ください。`;
+                } else {
+                    adviceBox.innerHTML = `☀️ <strong>外出に良好な日です</strong><br>まとまった降水の可能性は低く、安心してお出かけできる予報です。`;
+                }
             }
         }
 
@@ -1298,6 +1464,7 @@
                 let meteoData = null;
                 if (meteoRes && meteoRes.ok) {
                     meteoData = await meteoRes.json();
+                    cachedRawMeteoData = meteoData; // 週間タップ時のためにメモリ保存
                 }
 
                 cachedNextRainInfo = calculateNextRain(meteoData);
@@ -1415,7 +1582,6 @@
                         const mNoonIdx = hourly.time.indexOf(`${dateStr}T14:00`);
                         const mNightIdx = hourly.time.indexOf(`${dateStr}T20:00`);
 
-                        // 朝・昼・夜の数値を実気温から「体感温度（apparent_temperature）」に設定
                         if (mMorningIdx !== -1 && hourly.apparent_temperature?.[mMorningIdx] !== undefined) {
                             morningTemp = Math.round(hourly.apparent_temperature[mMorningIdx]);
                         } else if (mMorningIdx !== -1 && hourly.temperature_2m?.[mMorningIdx] !== undefined) {
@@ -1434,7 +1600,6 @@
                             nightTemp = Math.round(hourly.temperature_2m[mNightIdx]);
                         }
 
-                        // 8時〜17時の実効体感温度（日射・雲量・風速による物理補正）
                         let daytimeAdjustedTemps = [];
                         for (let h = 8; h <= 17; h++) {
                             const timeKey = `${dateStr}T${String(h).padStart(2, '0')}:00`;
@@ -1660,7 +1825,6 @@
                 `;
             }
 
-            // 朝・昼・夜の体感温度タイムライン（スマホのコンパクト画面でも折り返さず綺麗に収まる設計）
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
@@ -1868,9 +2032,11 @@
                 const displayMin = minT !== null ? minT : '--';
                 const displayPop = `${pop}%`;
                 const iconSvg = renderWeeklyListIcon(weatherCode, '');
+                const labelText = `${dateNum}日(${dayText})`;
 
+                // 行をタップすると6時間ポップアップを開く
                 return `
-                    <div class="flex items-center justify-between py-2.5 px-1 hover:bg-[#f8f9fa] transition-colors whitespace-nowrap">
+                    <div onclick="openDayPop6hModal('${dateStr}', '${labelText}', ${pop})" class="flex items-center justify-between py-2.5 px-1.5 hover:bg-orange-50/60 active:bg-orange-100/60 rounded-xl cursor-pointer transition-all whitespace-nowrap" title="タップして6時間毎の降水確率を表示">
                         <div class="flex items-center gap-1 shrink-0 font-medium whitespace-nowrap min-w-[56px]">
                             <span class="text-[17px] font-bold text-[#1c1c1e] min-w-[22px] text-right font-mono whitespace-nowrap leading-none">${dateNum}</span>
                             <span class="text-[16px] font-bold ${dayColorClass} whitespace-nowrap leading-none">(${dayText})</span>
@@ -1889,7 +2055,7 @@
                             </div>
                         </div>
 
-                        <div class="w-[38px] text-right text-[15px] font-bold text-[#374151] font-mono shrink-0 whitespace-nowrap">
+                        <div class="w-[38px] text-right text-[15px] font-bold text-[#007aff] font-mono shrink-0 whitespace-nowrap">
                             ${displayPop}
                         </div>
 
@@ -1897,6 +2063,11 @@
                             <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">
                                 ${reliability}
                             </span>
+                        </div>
+
+                        <!-- タップ誘導用の小さな矢印アイコン -->
+                        <div class="text-[#c7c7cc] text-[14px] shrink-0 pl-0.5">
+                            ›
                         </div>
                     </div>
                 `;
