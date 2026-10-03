@@ -95,7 +95,7 @@
         <!-- Header -->
         <header class="pt-2 pb-1 text-center relative">
             <button type="button" onclick="toggleSettingsModal(true)" class="absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
-                ⚙️
+                ⚙
             </button>
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
@@ -941,7 +941,18 @@
             let pops = [0, 0, 0, 0];
             let temps = ['--', '--', '--', '--'];
 
-            if (cachedRawMeteoData?.hourly?.time) {
+            // ★ 明日をタップした際はメインカードの短期予報データと100%完全一致させる
+            const tomorrowStr = getTomorrowDateString();
+            if (dateStr === tomorrowStr && cachedForecastData?.tomorrow) {
+                const tm = cachedForecastData.tomorrow;
+                pops = [...tm.pop6h];
+                temps = [
+                    tm.minTemp !== null ? `${tm.minTemp}` : '--',
+                    tm.morningTemp !== null ? `${tm.morningTemp}` : '--',
+                    tm.noonTemp !== null ? `${tm.noonTemp}` : '--',
+                    tm.nightTemp !== null ? `${tm.nightTemp}` : '--'
+                ];
+            } else if (cachedRawMeteoData?.hourly?.time) {
                 const hourly = cachedRawMeteoData.hourly;
                 const slotRanges = [
                     { start: 0, end: 5, idx: 0, midHour: 3 },
@@ -1444,7 +1455,6 @@
                 }
 
                 cachedNextRainInfo = calculateNextRain(meteoData);
-                renderWeeklyList(meteoData, jmaData);
 
                 const parseDayData = (dateStr, fallbackIdx, labelPrefix) => {
                     let weatherText = 'くもり';
@@ -1599,9 +1609,7 @@
                                 const ws = (hWind[idx] ?? 10) / 3.6;
 
                                 if (t !== undefined && t !== null) {
-                                    // 水蒸気圧（hPa）
                                     const e = (rh / 100) * 6.105 * Math.exp((17.27 * t) / (237.7 + t));
-                                    // オーストラリア気象局式（AT式: 気温・湿度・風速連動）
                                     const calculatedAt = t + (0.33 * e) - (0.70 * ws) - 4.0;
                                     targetHoursApparent.push(calculatedAt);
                                 } else if (hApparent[idx] !== undefined && hApparent[idx] !== null) {
@@ -1712,6 +1720,9 @@
                     tomorrow: tomorrowData
                 };
                 lastFetchedTimestamp = Date.now();
+
+                // ★ 明日データをメインカードと同期させるため、cachedForecastData 生成後に週間予報を描画
+                renderWeeklyList(meteoData, jmaData);
 
                 updateTabStyles();
                 renderForecastView(cachedForecastData[selectedDay]);
@@ -1955,7 +1966,7 @@
 
             const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
-            const listHtml = targetDates.map((dateStr) => {
+            const listHtml = targetDates.map((dateStr, dateIndex) => {
                 const d = new Date(dateStr + 'T00:00:00');
                 const dateNum = d.getDate();
                 const dayIndex = d.getDay();
@@ -1971,43 +1982,61 @@
                 let reliability = 'A';
                 let weatherCode = null;
 
-                const jmaWIdx = jmaWeatherTimes.findIndex(t => t.startsWith(dateStr));
-                if (jmaWIdx !== -1 && jmaWeatherArea) {
-                    weatherCode = jmaWeatherArea.weatherCodes?.[jmaWIdx];
-                    if (jmaWeatherArea.pops?.[jmaWIdx] !== undefined && jmaWeatherArea.pops[jmaWIdx] !== '') {
-                        pop = parseInt(jmaWeatherArea.pops[jmaWIdx], 10);
+                // ★ 明日（1日目）は、メインカードの気象庁短期高精度データと100%完全一致させる
+                if (dateIndex === 0 && cachedForecastData?.tomorrow) {
+                    const tm = cachedForecastData.tomorrow;
+                    maxT = tm.maxTemp;
+                    minT = tm.minTemp;
+                    pop = Math.max(...tm.pop6h);
+                    reliability = 'A';
+                    if (tm.weatherText.includes('雨')) {
+                        weatherCode = 61;
+                    } else if (tm.weatherText.includes('晴') && tm.weatherText.includes('曇')) {
+                        weatherCode = 2;
+                    } else if (tm.weatherText.includes('晴')) {
+                        weatherCode = 0;
+                    } else {
+                        weatherCode = 3;
                     }
-                    if (jmaWeatherArea.reliabilities?.[jmaWIdx]) {
-                        reliability = jmaWeatherArea.reliabilities[jmaWIdx];
+                } else {
+                    const jmaWIdx = jmaWeatherTimes.findIndex(t => t.startsWith(dateStr));
+                    if (jmaWIdx !== -1 && jmaWeatherArea) {
+                        weatherCode = jmaWeatherArea.weatherCodes?.[jmaWIdx];
+                        if (jmaWeatherArea.pops?.[jmaWIdx] !== undefined && jmaWeatherArea.pops[jmaWIdx] !== '') {
+                            pop = parseInt(jmaWeatherArea.pops[jmaWIdx], 10);
+                        }
+                        if (jmaWeatherArea.reliabilities?.[jmaWIdx]) {
+                            reliability = jmaWeatherArea.reliabilities[jmaWIdx];
+                        }
                     }
-                }
 
-                const jmaTIdx = jmaTempTimes.findIndex(t => t.startsWith(dateStr));
-                if (jmaTIdx !== -1 && jmaTempArea) {
-                    if (jmaTempArea.tempsMax?.[jmaTIdx] !== undefined && jmaTempArea.tempsMax[jmaTIdx] !== '') {
-                        const parsed = parseInt(jmaTempArea.tempsMax[jmaTIdx], 10);
-                        if (!isNaN(parsed)) maxT = parsed;
+                    const jmaTIdx = jmaTempTimes.findIndex(t => t.startsWith(dateStr));
+                    if (jmaTIdx !== -1 && jmaTempArea) {
+                        if (jmaTempArea.tempsMax?.[jmaTIdx] !== undefined && jmaTempArea.tempsMax[jmaTIdx] !== '') {
+                            const parsed = parseInt(jmaTempArea.tempsMax[jmaTIdx], 10);
+                            if (!isNaN(parsed)) maxT = parsed;
+                        }
+                        if (jmaTempArea.tempsMin?.[jmaTIdx] !== undefined && jmaTempArea.tempsMin[jmaTIdx] !== '') {
+                            const parsed = parseInt(jmaTempArea.tempsMin[jmaTIdx], 10);
+                            if (!isNaN(parsed)) minT = parsed;
+                        }
                     }
-                    if (jmaTempArea.tempsMin?.[jmaTIdx] !== undefined && jmaTempArea.tempsMin[jmaTIdx] !== '') {
-                        const parsed = parseInt(jmaTempArea.tempsMin[jmaTIdx], 10);
-                        if (!isNaN(parsed)) minT = parsed;
-                    }
-                }
 
-                if (meteoDaily && Array.isArray(meteoDaily.time)) {
-                    const mIdx = meteoDaily.time.indexOf(dateStr);
-                    if (mIdx !== -1) {
-                        if (maxT === null && meteoDaily.temperature_2m_max?.[mIdx] !== undefined && meteoDaily.temperature_2m_max[mIdx] !== null) {
-                            maxT = Math.round(meteoDaily.temperature_2m_max[mIdx]);
-                        }
-                        if (minT === null && meteoDaily.temperature_2m_min?.[mIdx] !== undefined && meteoDaily.temperature_2m_min[mIdx] !== null) {
-                            minT = Math.round(meteoDaily.temperature_2m_min[mIdx]);
-                        }
-                        if (pop === null && meteoDaily.precipitation_probability_max?.[mIdx] !== undefined && meteoDaily.precipitation_probability_max[mIdx] !== null) {
-                            pop = meteoDaily.precipitation_probability_max[mIdx];
-                        }
-                        if (!weatherCode && meteoDaily.weathercode?.[mIdx] !== undefined) {
-                            weatherCode = meteoDaily.weathercode[mIdx];
+                    if (meteoDaily && Array.isArray(meteoDaily.time)) {
+                        const mIdx = meteoDaily.time.indexOf(dateStr);
+                        if (mIdx !== -1) {
+                            if (maxT === null && meteoDaily.temperature_2m_max?.[mIdx] !== undefined && meteoDaily.temperature_2m_max[mIdx] !== null) {
+                                maxT = Math.round(meteoDaily.temperature_2m_max[mIdx]);
+                            }
+                            if (minT === null && meteoDaily.temperature_2m_min?.[mIdx] !== undefined && meteoDaily.temperature_2m_min[mIdx] !== null) {
+                                minT = Math.round(meteoDaily.temperature_2m_min[mIdx]);
+                            }
+                            if (pop === null && meteoDaily.precipitation_probability_max?.[mIdx] !== undefined && meteoDaily.precipitation_probability_max[mIdx] !== null) {
+                                pop = meteoDaily.precipitation_probability_max[mIdx];
+                            }
+                            if (!weatherCode && meteoDaily.weathercode?.[mIdx] !== undefined) {
+                                weatherCode = meteoDaily.weathercode[mIdx];
+                            }
                         }
                     }
                 }
