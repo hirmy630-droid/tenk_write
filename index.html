@@ -85,6 +85,50 @@
             background: rgba(0, 0, 0, 0.15);
             border-radius: 9999px;
         }
+
+        /* 14px以上で読みやすさを保つためのレイアウト調整 */
+        #locationInput { min-width: 0; }
+        #locationEditHint { line-height: 1.6; }
+        #criteriaBadge { white-space: normal; overflow-wrap: anywhere; }
+        #timeTimeline { margin-inline: -8px; gap: 2px; }
+        #timeTimeline > div { min-width: 0; padding-inline: 0; overflow: visible; }
+        #timeTimeline > div > div:last-child {
+            white-space: nowrap; overflow-wrap: normal; line-height: 1.5; letter-spacing: -0.3px;
+        }
+        #overviewModal > div > div:first-child,
+        #dayPop6hModal > div > div:first-child,
+        #hourlyModal > div > div:first-child { flex-wrap: wrap; gap: 6px; }
+        #jmaOverviewTitle, #dayPop6hModalTitle, #hourlyModalTitle {
+            white-space: normal; overflow: visible; line-height: 1.5;
+        }
+        #dayPop6hSummaryText { text-align: right; }
+        #dayPop6hModal > div { overflow-y: auto; }
+        #dayPop6hModal .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        #overviewModal > div > div:nth-child(3) { overflow-x: hidden; }
+        #weeklyForecastList > div {
+            display: grid;
+            grid-template-columns: 54px 30px minmax(0, 1fr) 38px 28px 8px;
+            column-gap: 6px;
+            padding-left: 0; padding-right: 0;
+            white-space: normal;
+        }
+        #weeklyForecastList > div > div {
+            min-width: 0; width: auto; padding-left: 0;
+        }
+        #weeklyForecastList > div > div:nth-child(3) {
+            gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+            white-space: normal; line-height: 1.5;
+        }
+        #weeklyForecastList > div > div:nth-child(5) > span {
+            width: 26px; height: 26px;
+        }
+        @media (max-width: 360px) {
+            #overviewModal > div { padding-inline: 12px; }
+            #weeklyForecastList > div { column-gap: 4px; }
+            #hourlyModal > div { padding: 12px; }
+            #hourlyModal .w-14 { width: 46px; }
+            #hourlyModal .w-12 { width: 42px; }
+        }
     </style>
 </head>
 <body class="bg-[#f2f2f7] select-none text-[14px]">
@@ -100,7 +144,7 @@
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
             </h1>
-            <p id="headerSubtitle" class="text-[13px] text-[#4b5563] mt-1 text-wrap-optimal font-medium">
+            <p id="headerSubtitle" class="text-[14px] text-[#4b5563] mt-1 text-wrap-optimal font-medium">
                 KYOWA ROOF
             </p>
         </header>
@@ -115,9 +159,9 @@
                 <span id="saveStatus" class="text-[14px] text-[#34c759] font-semibold transition-opacity opacity-0">追加完了</span>
             </div>
             
-            <label for="locationNameInput" class="block text-[13px] font-semibold mb-1">名前（任意）</label>
+            <label for="locationNameInput" class="block text-[14px] font-semibold mb-1">名前（任意）</label>
             <input type="text" id="locationNameInput" placeholder="例：自宅・会社・現場A" class="w-full bg-[#f2f2f7] border border-[#d1d1d6] text-[14px] rounded-xl px-3 py-2 mb-2 outline-none" onkeydown="if(event.key === 'Enter') handleAddLocation()">
-            <label for="locationInput" class="block text-[13px] font-semibold mb-1">住所（天気の取得に使用）</label>
+            <label for="locationInput" class="block text-[14px] font-semibold mb-1">住所（天気の取得に使用）</label>
             <div class="flex items-center gap-2">
                 <input 
                     type="text" 
@@ -134,7 +178,7 @@
                 </button>
             </div>
 
-            <p id="locationEditHint" class="text-[12px] text-[#4b5563]">登録済み地点の「名前」から変更できます。名前が空欄なら住所を表示します。</p>
+            <p id="locationEditHint" class="text-[14px] text-[#4b5563]">登録済み地点の「名前」から変更できます。名前が空欄なら住所を表示します。</p>
             <div class="pt-0.5">
                 <div id="locationList" class="space-y-1.5 max-h-[235px] overflow-y-auto pr-0.5"></div>
             </div>
@@ -142,28 +186,6 @@
 
         <!-- Day Selection & Action Section -->
         <div class="bg-white border border-[#e5e5ea] rounded-2xl p-3.5 shadow-sm space-y-3">
-            <div>
-                <label class="text-[14px] font-semibold text-[#374151] block mb-1.5 px-0.5">
-                    📅 判定する対象日を選択
-                </label>
-                <div class="grid grid-cols-2 gap-1.5 bg-[#e5e5ea]/60 p-1 rounded-xl border border-[#d1d1d6]/60">
-                    <button 
-                        type="button" 
-                        id="mainTabToday"
-                        onclick="setTargetDay('today')" 
-                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm">
-                        今日
-                    </button>
-                    <button 
-                        type="button" 
-                        id="mainTabTomorrow"
-                        onclick="setTargetDay('tomorrow')" 
-                        class="ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563] hover:text-[#1c1c1e]">
-                        明日
-                    </button>
-                </div>
-            </div>
-
             <button 
                 type="button"
                 id="checkBtn" 
@@ -178,7 +200,7 @@
             <!-- Loading State -->
             <div id="loading" class="hidden py-6 flex flex-col items-center justify-center">
                 <div class="ios-loader w-8 h-8 mb-3"></div>
-                <p id="loadingText" class="text-[13px] font-semibold text-[#374151] text-wrap-optimal animate-pulse text-center">
+                <p id="loadingText" class="text-[14px] font-semibold text-[#374151] text-wrap-optimal animate-pulse text-center">
                     気象庁データ ＆ 体感温度取得中...
                 </p>
             </div>
@@ -201,7 +223,7 @@
                         onchange="handleResultLocationSelect(this.value)" 
                         class="w-full appearance-none bg-[#f2f2f7] hover:bg-[#e5e5ea] text-[#1c1c1e] text-[14px] font-bold pl-7 pr-6 py-1.5 rounded-xl border border-[#d1d1d6] shadow-xs outline-none focus:border-[#ff9500] transition-all cursor-pointer truncate">
                     </select>
-                    <span class="absolute right-2 pointer-events-none text-[#4b5563] text-[11px]">▼</span>
+                    <span class="absolute right-2 pointer-events-none text-[#4b5563] text-[14px]">▼</span>
                 </div>
 
                 <div class="flex items-center shrink-0">
@@ -217,7 +239,7 @@
             
             <!-- Pull-To-Refresh Indicator Block -->
             <div id="ptrContainer" class="w-full">
-                <div class="flex items-center justify-center gap-2 py-2 text-[#4b5563] text-[13px] font-medium">
+                <div class="flex items-center justify-center gap-2 py-2 text-[#4b5563] text-[14px] font-medium">
                     <div id="ptrIcon" class="transition-transform duration-200 text-[#ff9500]">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -281,19 +303,19 @@
                         </div>
                         <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                <div class="text-[13px] text-[#4b5563] font-semibold">0-6時</div>
+                                <div class="text-[14px] text-[#4b5563] font-semibold">0-6時</div>
                                 <div id="popSlot0" class="text-[15px] font-bold text-[#007aff]">--%</div>
                             </div>
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                <div class="text-[13px] text-[#4b5563] font-semibold">6-12時</div>
+                                <div class="text-[14px] text-[#4b5563] font-semibold">6-12時</div>
                                 <div id="popSlot1" class="text-[15px] font-bold text-[#007aff]">--%</div>
                             </div>
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                <div class="text-[13px] text-[#4b5563] font-semibold">12-18時</div>
+                                <div class="text-[14px] text-[#4b5563] font-semibold">12-18時</div>
                                 <div id="popSlot2" class="text-[15px] font-bold text-[#007aff]">--%</div>
                             </div>
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
-                                <div class="text-[13px] text-[#4b5563] font-semibold">18-24時</div>
+                                <div class="text-[14px] text-[#4b5563] font-semibold">18-24時</div>
                                 <div id="popSlot3" class="text-[15px] font-bold text-[#007aff]">--%</div>
                             </div>
                         </div>
@@ -315,7 +337,7 @@
             <div id="nextRainBanner" class="bg-blue-50/80 border border-blue-200/80 rounded-2xl p-3 shadow-xs flex items-center gap-2.5">
                 <span class="text-2xl shrink-0">☔</span>
                 <div class="flex-1 min-w-0">
-                    <div class="text-[12px] font-bold text-blue-700 tracking-wide uppercase">今後の降水タイミング</div>
+                    <div class="text-[14px] font-bold text-blue-700 tracking-wide uppercase">今後の降水タイミング</div>
                     <div id="nextRainText" class="text-[14px] font-bold text-[#1c1c1e] leading-snug mt-0.5 whitespace-normal break-words">
                         計算中...
                     </div>
@@ -324,19 +346,19 @@
 
             <!-- Outfit Section -->
             <div class="bg-orange-50/70 rounded-2xl p-3 border border-orange-200 shadow-sm space-y-2">
-                <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5 gap-2">
+                <div class="flex items-center justify-between border-b border-orange-200/60 pb-1.5 gap-2 flex-wrap">
                     <div class="flex items-center gap-1.5 shrink-0">
                         <span class="text-base">👔</span>
                         <h3 class="text-[15px] font-bold text-[#d97706] uppercase tracking-wider whitespace-nowrap">推奨服装</h3>
                     </div>
-                    <span id="criteriaBadge" class="text-[12px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold whitespace-nowrap shrink-0">--</span>
+                    <span id="criteriaBadge" class="text-[14px] bg-white px-2 py-0.5 rounded-lg border border-orange-200 text-[#374151] font-semibold whitespace-nowrap shrink-0">--</span>
                 </div>
                 <div id="outfitSection" class="space-y-1.5"></div>
                 
                 <!-- 朝・昼・夜の寒暖差タイムライン -->
                 <div class="bg-white rounded-xl p-2.5 border border-[#e5e5ea] space-y-2 mt-2 shadow-xs">
                     <div class="flex items-center justify-between px-0.5">
-                        <span class="font-bold text-[#d97706] text-[13px] flex items-center gap-1">
+                        <span class="font-bold text-[#d97706] text-[14px] flex items-center gap-1">
                             <span>🕒</span>
                             <span>朝・昼・夜の体感寒暖差</span>
                         </span>
@@ -354,7 +376,7 @@
                     <span>📍</span>
                     <span>登録地点の追加・変更へ</span>
                 </button>
-                <p class="text-center text-[13px] text-[#8e8e93] font-semibold mt-3 tracking-wider select-none">
+                <p class="text-center text-[14px] text-[#8e8e93] font-semibold mt-3 tracking-wider select-none">
                     KYOWA ROOF
                 </p>
             </div>
@@ -369,10 +391,10 @@
                     <span class="text-lg shrink-0">📅</span>
                     <h3 id="jmaOverviewTitle" class="text-[17px] font-bold text-[#1c1c1e] truncate">--</h3>
                 </div>
-                <span id="jmaReportTimeBadge" class="text-[12px] text-[#4b5563] font-mono font-medium shrink-0 ml-2">--:-- 発表</span>
+                <span id="jmaReportTimeBadge" class="text-[14px] text-[#4b5563] font-mono font-medium shrink-0 ml-2">--:-- 発表</span>
             </div>
 
-            <div class="flex items-center justify-between px-1 text-[11px] text-[#6b7280] font-medium bg-[#f8f9fa] py-1 rounded-lg">
+            <div class="flex items-center justify-between px-1 text-[14px] text-[#6b7280] font-medium bg-[#f8f9fa] py-1 rounded-lg">
                 <span>※ 日にちをタップで6時間毎の降水確率を表示</span>
             </div>
 
@@ -396,41 +418,41 @@
                     <span class="text-lg shrink-0">💧</span>
                     <h3 id="dayPop6hModalTitle" class="text-[16px] font-bold text-[#1c1c1e] truncate">6時間毎の降水確率</h3>
                 </div>
-                <span id="dayPop6hModalDate" class="text-[13px] text-[#007aff] font-bold">--</span>
+                <span id="dayPop6hModalDate" class="text-[14px] text-[#007aff] font-bold">--</span>
             </div>
 
             <div class="space-y-2">
-                <div class="text-[13px] text-[#4b5563] font-medium flex items-center justify-between">
+                <div class="text-[14px] text-[#4b5563] font-medium flex items-center justify-between">
                     <span>時間帯別の雨予報</span>
-                    <span id="dayPop6hSummaryText" class="text-[12px] font-bold text-[#ff9500]">--</span>
+                    <span id="dayPop6hSummaryText" class="text-[14px] font-bold text-[#ff9500]">--</span>
                 </div>
 
                 <!-- 6時間スロットグリッド -->
                 <div class="grid grid-cols-4 gap-1.5 text-center font-mono">
                     <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
-                        <div class="text-[12px] text-[#4b5563] font-semibold">0-6時</div>
+                        <div class="text-[14px] text-[#4b5563] font-semibold">0-6時</div>
                         <div id="dayPopSlot0" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
-                        <div id="dayPopTemp0" class="text-[11px] text-[#6b7280]">--℃</div>
+                        <div id="dayPopTemp0" class="text-[14px] text-[#6b7280]">--℃</div>
                     </div>
                     <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
-                        <div class="text-[12px] text-[#4b5563] font-semibold">6-12時</div>
+                        <div class="text-[14px] text-[#4b5563] font-semibold">6-12時</div>
                         <div id="dayPopSlot1" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
-                        <div id="dayPopTemp1" class="text-[11px] text-[#6b7280]">--℃</div>
+                        <div id="dayPopTemp1" class="text-[14px] text-[#6b7280]">--℃</div>
                     </div>
                     <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
-                        <div class="text-[12px] text-[#4b5563] font-semibold">12-18時</div>
+                        <div class="text-[14px] text-[#4b5563] font-semibold">12-18時</div>
                         <div id="dayPopSlot2" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
-                        <div id="dayPopTemp2" class="text-[11px] text-[#6b7280]">--℃</div>
+                        <div id="dayPopTemp2" class="text-[14px] text-[#6b7280]">--℃</div>
                     </div>
                     <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-xl py-2 px-1">
-                        <div class="text-[12px] text-[#4b5563] font-semibold">18-24時</div>
+                        <div class="text-[14px] text-[#4b5563] font-semibold">18-24時</div>
                         <div id="dayPopSlot3" class="text-[17px] font-bold text-[#007aff] my-0.5">--%</div>
-                        <div id="dayPopTemp3" class="text-[11px] text-[#6b7280]">--℃</div>
+                        <div id="dayPopTemp3" class="text-[14px] text-[#6b7280]">--℃</div>
                     </div>
                 </div>
             </div>
 
-            <div id="dayPop6hAdviceBox" class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-2.5 text-[13px] text-[#1c1c1e] leading-snug"></div>
+            <div id="dayPop6hAdviceBox" class="bg-blue-50/70 border border-blue-200/80 rounded-xl p-2.5 text-[14px] text-[#1c1c1e] leading-snug"></div>
 
             <div class="pt-1.5 shrink-0 border-t border-[#e5e5ea] flex gap-2">
                 <button type="button" onclick="backToOverviewModal()" class="ios-btn flex-1 bg-[#ff9500] hover:bg-[#e08500] text-white font-semibold text-[14px] py-2 rounded-xl shadow-xs transition-colors">
@@ -451,10 +473,10 @@
                     <span class="text-lg shrink-0">⏱️</span>
                     <h3 id="hourlyModalTitle" class="text-[16px] font-bold text-[#1c1c1e] truncate">1時間ごとの天気</h3>
                 </div>
-                <span id="hourlyModalDate" class="text-[13px] text-[#4b5563] font-semibold">--</span>
+                <span id="hourlyModalDate" class="text-[14px] text-[#4b5563] font-semibold">--</span>
             </div>
 
-            <div class="flex items-center justify-between px-2 py-1 text-[12px] font-bold text-[#6b7280] border-b border-[#f2f2f7] shrink-0 bg-[#f8f9fa] rounded-lg">
+            <div class="flex items-center justify-between px-2 py-1 text-[14px] font-bold text-[#6b7280] border-b border-[#f2f2f7] shrink-0 bg-[#f8f9fa] rounded-lg">
                 <span class="w-14 text-left">時間</span>
                 <span class="w-8 text-center">天気</span>
                 <span class="w-12 text-center">気温</span>
@@ -641,18 +663,6 @@
         function updateTabStyles() {
             const isToday = (selectedDay === 'today');
             
-            const mToday = document.getElementById('mainTabToday');
-            const mTomorrow = document.getElementById('mainTabTomorrow');
-            if (mToday && mTomorrow) {
-                if (isToday) {
-                    mToday.className = 'ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm';
-                    mTomorrow.className = 'ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563] hover:text-[#1c1c1e]';
-                } else {
-                    mTomorrow.className = 'ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all bg-[#ff9500] text-white shadow-sm';
-                    mToday.className = 'ios-btn py-1.5 text-[14px] font-semibold rounded-lg transition-all text-[#4b5563] hover:text-[#1c1c1e]';
-                }
-            }
-
             const resToday = document.getElementById('resTabToday');
             const resTomorrow = document.getElementById('resTabTomorrow');
             if (resToday && resTomorrow) {
@@ -666,17 +676,42 @@
             }
         }
 
+        let forecastPositionTimers = [];
+        function cancelForecastPositionRestore() {
+            forecastPositionTimers.forEach(clearTimeout);
+            forecastPositionTimers = [];
+        }
+        function restoreForecastPagePosition() {
+            const main = document.getElementById('mainScreenContainer');
+            const forecast = document.getElementById('forecastScreenContainer');
+            if (!forecast || forecast.classList.contains('hidden') || (main && !main.classList.contains('hidden'))) return;
+            // 内側の予報スクロールは触らず、ページ全体のずれだけを戻す。
+            if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+            window.scrollTo(0, 0);
+        }
         function showForecastView(isPullRefresh = false) {
             const mainContainer = document.getElementById('mainScreenContainer');
             const forecastContainer = document.getElementById('forecastScreenContainer');
 
+            const returningFromRegistration = mainContainer && !mainContainer.classList.contains('hidden');
+            cancelForecastPositionRestore();
+            if (returningFromRegistration) {
+                const focused = document.activeElement;
+                if (focused && mainContainer.contains(focused) && typeof focused.blur === 'function') focused.blur();
+            }
             if (mainContainer) mainContainer.classList.add('hidden');
             if (forecastContainer) forecastContainer.classList.remove('hidden');
+            if (returningFromRegistration) {
+                restoreForecastPagePosition();
+                // キーボードが閉じる途中と閉じた後にも位置を整える。
+                forecastPositionTimers = [150, 400].map(delay => setTimeout(restoreForecastPagePosition, delay));
+            }
 
             return fetchForecastData(isPullRefresh);
         }
 
         function showMainScreen() {
+            cancelForecastPositionRestore();
             const mainContainer = document.getElementById('mainScreenContainer');
             const forecastContainer = document.getElementById('forecastScreenContainer');
 
@@ -816,7 +851,7 @@
                 item.appendChild(textBtn);
                 const nameBtn = document.createElement('button');
                 nameBtn.type = 'button';
-                nameBtn.className = 'ios-btn text-[#007aff] text-[12px] px-2 py-1 rounded-lg shrink-0';
+                nameBtn.className = 'ios-btn text-[#007aff] text-[14px] px-2 py-1 rounded-lg shrink-0';
                 nameBtn.textContent = '名前';
                 nameBtn.setAttribute('aria-label', `${loc}の名前を編集`);
                 nameBtn.onclick = () => editLocationName(loc);
@@ -1013,13 +1048,13 @@
             if (summaryText) {
                 if (maxDailyPop === null) {summaryText.innerText='降水確率データなし';} else if (maxDailyPop >= 60) {
                     summaryText.innerText = '雨の可能性が高い';
-                    summaryText.className = 'text-[12px] font-bold text-[#e03131]';
+                    summaryText.className = 'text-[14px] font-bold text-[#e03131]';
                 } else if (maxDailyPop >= 30) {
                     summaryText.innerText = '一時的に雨の可能性あり';
-                    summaryText.className = 'text-[12px] font-bold text-[#ff9500]';
+                    summaryText.className = 'text-[14px] font-bold text-[#ff9500]';
                 } else {
                     summaryText.innerText = '雨の心配は少なめ';
-                    summaryText.className = 'text-[12px] font-bold text-[#007aff]';
+                    summaryText.className = 'text-[14px] font-bold text-[#007aff]';
                 }
             }
 
@@ -1892,19 +1927,19 @@
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">朝 (8時)</div>
+                        <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">朝 (8時)</div>
                         <div class="font-bold text-[#1c1c1e] font-mono text-[16px] my-1">${morningTemp ?? "--"}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(morningTemp) ? 'データなし' : morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
+                        <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(morningTemp) ? 'データなし' : morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">昼 (14時)</div>
+                        <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">昼 (14時)</div>
                         <div class="font-bold text-orange-600 font-mono text-[16px] my-1">${noonTemp ?? "--"}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(noonTemp) ? 'データなし' : noonTemp >= 22 ? '上着不要' : '適温'}</div>
+                        <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(noonTemp) ? 'データなし' : noonTemp >= 22 ? '上着不要' : '適温'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">夜 (20時)</div>
+                        <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">夜 (20時)</div>
                         <div class="font-bold text-[#007aff] font-mono text-[16px] my-1">${nightTemp ?? "--"}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(nightTemp) ? 'データなし' : nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
+                        <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(nightTemp) ? 'データなし' : nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
                     </div>
                 `;
             }
@@ -2166,10 +2201,10 @@
 
                         <div class="flex items-baseline justify-end gap-2 text-[17px] font-bold font-mono tracking-tight shrink-0 min-w-[82px] whitespace-nowrap">
                             <div class="text-[#e03131]">
-                                <span>${displayMax}</span><span class="text-[12px] font-normal">℃</span>
+                                <span>${displayMax}</span><span class="text-[14px] font-normal">℃</span>
                             </div>
                             <div class="text-[#007aff]">
-                                <span>${displayMin}</span><span class="text-[12px] font-normal">℃</span>
+                                <span>${displayMin}</span><span class="text-[14px] font-normal">℃</span>
                             </div>
                         </div>
 
@@ -2178,7 +2213,7 @@
                         </div>
 
                         <div class="w-[28px] flex items-center justify-center shrink-0 pl-1" title="${reliability ? '気象庁の予報信頼度 ' + reliability : '予報信頼度：判定なし'}" aria-label="${reliability ? '気象庁の予報信頼度 ' + reliability : '予報信頼度：判定なし'}">
-                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">${reliability ?? '--'}</span>
+                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[14px] font-bold flex items-center justify-center font-sans">${reliability ?? '--'}</span>
                         </div>
 
                         <div class="text-[#c7c7cc] text-[14px] shrink-0 pl-0.5">

@@ -1,9 +1,9 @@
 {
-  "id": "./",
+  "id": "./index.html",
   "name": "明日の服装予報",
   "short_name": "服装予報",
   "lang": "ja",
-  "start_url": "./index.html?v=20261004-f62983eb4cee",
+  "start_url": "./index.html?v=20261004-212820",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f2f2f7",
