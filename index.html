@@ -2145,9 +2145,9 @@
                             ${displayPop}
                         </div>
 
-                        ${reliability ? `<div class="w-[28px] flex items-center justify-center shrink-0 pl-1" title="気象庁の予報信頼度 ${reliability}" aria-label="気象庁の予報信頼度 ${reliability}">
-                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">${reliability}</span>
-                        </div>` : ''}
+                        <div class="w-[28px] flex items-center justify-center shrink-0 pl-1" title="${reliability ? '気象庁の予報信頼度 ' + reliability : '予報信頼度：判定なし'}" aria-label="${reliability ? '気象庁の予報信頼度 ' + reliability : '予報信頼度：判定なし'}">
+                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">${reliability ?? '--'}</span>
+                        </div>
 
                         <div class="text-[#c7c7cc] text-[14px] shrink-0 pl-0.5">
                             ›
