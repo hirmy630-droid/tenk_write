@@ -94,6 +94,12 @@ Check your Browserslist config to be sure that your targets are set up correctly
 /*! https://mths.be/cssesc v3.0.0 by @mathias */
 </script>
     <style>
+        .clothing-result {
+            word-break: normal;
+            overflow-wrap: anywhere;
+            white-space: normal;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
             background-color: #f2f2f7;
@@ -727,6 +733,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
         let selectedDay = 'today';
         let cachedForecastData = null;
         let cachedRawMeteoData = null;
+        let cachedRawJmaData = null;
         let lastFetchedTimestamp = 0;
         let isRefreshing = false;
         let cachedNextRainInfo = null;
@@ -1098,17 +1105,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 ];
 
                 slotRanges.forEach(slot => {
-                    let maxP = null;
-                    for (let h = slot.start; h <= slot.end; h++) {
-                        const timePrefix = `${dateStr}T${String(h).padStart(2, '0')}`;
-                        const idx = hourly.time.findIndex(t => t.startsWith(timePrefix));
-                        if (idx !== -1 && validNumber(hourly.precipitation_probability?.[idx])) {
-                            if (maxP === null || hourly.precipitation_probability[idx] > maxP) {
-                                maxP = hourly.precipitation_probability[idx];
-                            }
-                        }
-                    }
-                    pops[slot.idx] = maxP;
+                    const official=officialSixHourPops(cachedRawJmaData,dateStr);
+                    pops[slot.idx]=official[slot.idx] ?? probabilitySlotMax(hourly,dateStr,slot.idx);
 
                     const midPrefix = `${dateStr}T${String(slot.midHour).padStart(2, '0')}`;
                     const midIdx = hourly.time.findIndex(t => t.startsWith(midPrefix));
@@ -1121,6 +1119,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 pops = [fallbackPop, fallbackPop, fallbackPop, fallbackPop];
             }
 
+            // モデル取得失敗時も、取得できた公式の時間帯確率を使用する。
+            const officialPops = officialSixHourPops(cachedRawJmaData, dateStr);
+            pops = pops.map((value, i) => officialPops[i] ?? value);
+
             for (let i = 0; i < 4; i++) {
                 const popSlot = document.getElementById(`dayPopSlot${i}`);
                 const tempSlot = document.getElementById(`dayPopTemp${i}`);
@@ -1128,7 +1130,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 if (tempSlot) tempSlot.innerText = (temps[i] !== '--') ? `約${temps[i]}℃` : '--';
             }
 
-            const maxDailyPop = maxKnown(pops);
+            // 一覧の1日確率と、時間帯ごとの確率を混同しない。
+            const maxDailyPop = validNumber(maxPopVal) ? maxPopVal : maxKnown(pops);
             if (summaryText) {
                 if (maxDailyPop === null) {summaryText.innerText='降水確率データなし';} else if (maxDailyPop >= 60) {
                     summaryText.innerText = '雨の可能性が高い';
@@ -1142,6 +1145,9 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 }
             }
 
+            if(summaryText && validNumber(maxPopVal)) {
+                summaryText.innerText += `（1日の降水確率 ${maxPopVal}%）`;
+            }
             if (adviceBox) {
                 if (maxDailyPop === null) {adviceBox.textContent='降水確率を取得できないため判断できません。';} else if (maxDailyPop >= 50) {
                     adviceBox.innerHTML = `☔ <strong>雨具の用意が安心です</strong><br>降水確率が${maxDailyPop}%まで上がっています。外出時は折りたたみ傘をお持ちください。`;
@@ -1293,42 +1299,61 @@ Check your Browserslist config to be sure that your targets are set up correctly
             return out;
         }
 
+        function probabilitySlotMax(hourly, dateStr, slot) {
+            const start=Date.parse(dateStr+'T00:00:00+09:00')+slot*6*3600000;
+            const values=[];
+            for(let h=1;h<=6;h++) {
+                const end=start+h*3600000;
+                const idx=hourly?.time?.findIndex(t=>forecastTimeMs(t)===end) ?? -1;
+                const v=hourly?.precipitation_probability?.[idx];
+                if(!validNumber(v) || v<0 || v>100) return null;
+                values.push(v);
+            }
+            return Math.max(...values);
+        }
+        function forecastTimeMs(t) {
+            return Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(t)?t:t+'+09:00');
+        }
+        function officialSixHourPops(jmaData,dateStr) {
+            const series=jmaData?.[0]?.timeSeries?.[1], area=series?.areas?.[0];
+            const pops=[null,null,null,null];
+            (series?.timeDefines||[]).forEach((t,i)=>{
+                if(!t.startsWith(dateStr)) return;
+                const raw=area?.pops?.[i], hour=Number(t.slice(11,13));
+                if(raw==null || raw==='') return;
+                const v=Number(raw);
+                if([0,6,12,18].includes(hour) && validNumber(v) && v>=0 && v<=100) pops[hour/6]=v;
+            });
+            return pops;
+        }
         function calculateNextRain(meteoData, nowMs=Date.now()) {
             const hourly=meteoData?.hourly;
             if(!Array.isArray(hourly?.time)) return {text:'降水予報を取得できません',status:'unknown'};
-            const times=hourly.time;
-            const pops=hourly.precipitation_probability||[];
-            const amounts=hourly.precipitation||[];
-            const codes=hourly.weathercode||[];
-            const toMs=t=>Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(t)?t:t+'+09:00');
-            const threshold = 50;
-            const currentHour=Math.floor(nowMs/3600000)*3600000;
-            const first=times.findIndex(t=>toMs(t)>=currentHour);
-            if(first<0 || toMs(times[first])>currentHour) return {text:'降水予報を取得できません',status:'unknown'};
+            const times=hourly.time, pops=hourly.precipitation_probability||[], amounts=hourly.precipitation||[], codes=hourly.weathercode||[];
+            const first=times.findIndex(t=>forecastTimeMs(t)>nowMs);
+            if(first<0 || forecastTimeMs(times[first])-3600000>nowMs) return {text:'降水予報を取得できません',status:'unknown'};
             let last=first-1;
-            // 途中の欠損を飛ばして「雨なし」の期間を延ばさない。
             for(let i=first;i<times.length;i++) {
-                const c=codes[i];
-                const rainCode=validNumber(c)&&((c>=51&&c<=67)||(c>=80&&c<=82)||(c>=95&&c<=99));
+                const end=forecastTimeMs(times[i]), c=codes[i];
+                if(!Number.isFinite(end) || (i>first && end-forecastTimeMs(times[i-1])!==3600000)) break;
+                const rain=validNumber(c)&&((c>=51&&c<=67)||(c>=80&&c<=82)||(c>=95&&c<=99));
                 const snow=validNumber(c)&&((c>=71&&c<=77)||(c>=85&&c<=86));
-                if(!validNumber(pops[i])&&!validNumber(amounts[i])&&!rainCode&&!snow) break;
-                if(i>first && toMs(times[i])-toMs(times[i-1])!==3600000) break;
+                if(!validNumber(pops[i])&&!validNumber(amounts[i])&&!rain&&!snow) break;
                 last=i;
-                if(rainCode || snow || pops[i]>=threshold || amounts[i]>=0.2) {
-                    const kind=snow?'雪予報':'雨予報';
-                    const hours=Math.max(0,(toMs(times[i])-nowMs)/3600000);
+                const intervalRain=(validNumber(pops[i])&&pops[i]>=50)||(validNumber(amounts[i])&&amounts[i]>=0.2);
+                if(intervalRain || rain || snow) {
+                    // 確率・降水量は直前1時間、天気コードは表示時刻の値。
+                    const rainTime=intervalRain?end-3600000:end;
+                    const hours=Math.max(0,(rainTime-nowMs)/3600000), kind=snow?'雪予報':'雨予報';
                     if(hours<1) return {text:`現在〜1時間以内に${kind}`,status:'raining'};
                     if(hours<24) return {text:`約${Math.max(1,Math.round(hours))}時間後に${kind}`,status:'hours'};
-                    const days=Math.round(hours/24);
-                    return {text:`約${days}日後に${kind}`,status:'days'};
+                    return {text:`約${Math.round(hours/24)}日後に${kind}`,status:'days'};
                 }
             }
             if(last<first) return {text:'降水予報を取得できません',status:'unknown'};
-            // 端数を切り捨て、実際に確認した期間より長く表示しない。
-            const hours=Math.max(0,Math.floor((toMs(times[last])-nowMs)/3600000));
+            const hours=Math.max(0,Math.floor((forecastTimeMs(times[last])-nowMs)/3600000));
             if(hours<1) return {text:'今後の降水データが不足しています',status:'unknown'};
-            const days=Math.floor(hours/24),rest=hours%24;
-            const duration=days ? `${days}日間` : `${hours}時間`;
+            const days=Math.floor(hours/24), duration=days?`${days}日間`:`${hours}時間`;
             return {text:`今後${duration}は雨の可能性が低め`,status:'clear'};
         }
 
@@ -1554,7 +1579,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             forecastAbort?.abort();
             forecastAbort = new AbortController();
             const signal = forecastAbort.signal;
-            cachedForecastData = null; cachedRawMeteoData = null; cachedNextRainInfo = null;
+            cachedForecastData = null; cachedRawMeteoData = null; cachedRawJmaData = null; cachedNextRainInfo = null;
             document.getElementById('resultScrollContainer')?.classList.add('opacity-50');
             const btn = document.getElementById('checkBtn');
             const loading = document.getElementById('loading');
@@ -1628,6 +1653,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 if (jmaForecastRes && jmaForecastRes.ok) {
                     try {
                         jmaData = await jmaForecastRes.json();
+                        cachedRawJmaData = jmaData;
                     } catch (e) {
                         console.warn("JMA forecast parse error:", e);
                     }
@@ -1824,15 +1850,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
                         slotRanges.forEach(slot => {
                             if (pop6h[slot.index] === null) {
-                                let maxSlotPop = null;
-                                for (let h = slot.start; h <= slot.end; h++) {
-                                    const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
-                                    const idx = hTime.findIndex(t => t.startsWith(prefix));
-                                    if (idx !== -1 && hPop[idx] !== undefined && hPop[idx] !== null) {
-                                        if (maxSlotPop === null || hPop[idx] > maxSlotPop) maxSlotPop = hPop[idx];
-                                    }
-                                }
-                                pop6h[slot.index] = maxSlotPop;
+                                pop6h[slot.index] = probabilitySlotMax(hourly,dateStr,slot.index);
                             }
                         });
 
@@ -1925,6 +1943,19 @@ Check your Browserslist config to be sure that your targets are set up correctly
             }
         }
 
+        function fitClothingText() {
+            const section = document.getElementById('outfitSection');
+            if (!section || !section.getBoundingClientRect().width) return;
+            section.querySelectorAll('.clothing-result').forEach(el => {
+                for (let size = 17; size >= 14; size--) {
+                    el.style.fontSize = size + 'px';
+                    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+                    if (el.scrollHeight <= lineHeight * 2 + 1) break;
+                }
+            });
+        }
+        window.addEventListener('resize', () => requestAnimationFrame(fitClothingText));
+
         function renderForecastView(data) {
             if (!data) return;
 
@@ -1999,14 +2030,16 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 outfitSec.innerHTML = `
                     <div class="bg-white rounded-xl p-2.5 border border-orange-200/80 shadow-xs">
                         <div class="text-[14px] font-bold text-[#d97706] uppercase tracking-wider mb-0.5">【上着・トップス】</div>
-                        <div class="text-[#1c1c1e] font-bold text-[17px] leading-snug">${outfit.jacket}</div>
+                        <div class="clothing-result text-[#1c1c1e] font-bold text-[17px] leading-snug">${outfit.jacket}</div>
                     </div>
                     <div class="bg-white rounded-xl p-2.5 border border-orange-200/80 shadow-xs">
                         <div class="text-[14px] font-bold text-[#d97706] uppercase tracking-wider mb-0.5">【ボトムス・ズボン】</div>
-                        <div class="text-[#1c1c1e] font-bold text-[17px] leading-snug">${escapeHtml(outfit.pants)}</div>
+                        <div class="clothing-result text-[#1c1c1e] font-bold text-[17px] leading-snug">${escapeHtml(outfit.pants)}</div>
                     </div>
                 `;
             }
+
+            requestAnimationFrame(fitClothingText);
 
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
