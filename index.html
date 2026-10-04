@@ -95,7 +95,7 @@
         <!-- Header -->
         <header class="pt-2 pb-1 text-center relative">
             <button type="button" onclick="toggleSettingsModal(true)" class="absolute right-0 top-1 text-[#4b5563] hover:text-[#1c1c1e] p-2 text-xl transition-colors" title="設定">
-                ⚙
+                ⚙️️
             </button>
             <h1 class="text-[22px] font-bold tracking-tight text-[#1c1c1e] flex items-center justify-center gap-1.5">
                 明日の服装予報
@@ -312,7 +312,7 @@
                 <span class="text-2xl shrink-0">☔</span>
                 <div class="flex-1 min-w-0">
                     <div class="text-[12px] font-bold text-blue-700 tracking-wide uppercase">今後の降水タイミング</div>
-                    <div id="nextRainText" class="text-[14px] font-bold text-[#1c1c1e] leading-snug mt-0.5 truncate">
+                    <div id="nextRainText" class="text-[14px] font-bold text-[#1c1c1e] leading-snug mt-0.5 whitespace-normal break-words">
                         計算中...
                     </div>
                 </div>
@@ -580,38 +580,18 @@
         };
 
         // 【手持ち服リスト】および【判定基準】に厳密に従った判定ロジック
-        function evaluateClothingByCriteria(apparentTemp) {
-            let label = '';
-            let jacket = '';
-            let pants = '';
-
-            if (apparentTemp >= 25) {
-                label = '25℃以上';
-                jacket = '半袖シャツ';
-                pants = 'ズボン';
-            } else if (apparentTemp >= 20) {
-                label = '20℃〜24℃';
-                jacket = '長袖シャツ';
-                pants = 'ズボン';
-            } else if (apparentTemp >= 16) {
-                label = '16℃〜20℃';
-                jacket = 'インナーシャツ＋長袖シャツ＋ジャケット';
-                pants = 'ズボン';
-            } else if (apparentTemp >= 11) {
-                label = '11℃〜15℃';
-                jacket = '防寒インナー＋長袖シャツ＋軽防寒服';
-                pants = 'インナー＋ズボン';
-            } else if (apparentTemp >= 6) {
-                label = '6℃〜10℃';
-                jacket = '防寒インナー＋長袖シャツ＋ジャケット＋軽防寒服';
-                pants = '防寒インナー＋軽防寒ズボン';
-            } else {
-                label = '5℃以下';
-                jacket = '防寒インナー＋長袖シャツ＋重防寒服';
-                pants = '防寒インナー＋防寒ズボン';
-            }
-
-            return { label, jacket, pants };
+        function evaluateClothingByCriteria(t) {
+            if (!Number.isFinite(t)) return {label:'判定できません',jacket:'10〜15時の体感温度データを取得できません',pants:'データ取得後に判定します'};
+            const rows = [
+                [25,'25℃以上','半袖シャツ','ズボン'],
+                [20,'20℃以上25℃未満','長袖シャツ','ズボン'],
+                [18,'18℃以上20℃未満','インナーシャツ＋長袖シャツ＋ジャケット','ズボン'],
+                [15,'15℃以上18℃未満','インナーシャツ＋長袖シャツ＋軽防寒服','インナー＋ズボン'],
+                [10,'10℃以上15℃未満','軽防寒インナー＋長袖シャツ＋軽防寒服','インナー＋軽防寒ズボン'],
+                [6,'6℃以上10℃未満','防寒インナー＋長袖シャツ＋ジャケット＋軽防寒服','防寒インナー＋軽防寒ズボン'],
+                [-Infinity,'6℃未満','防寒インナー＋長袖シャツ＋重防寒服','防寒インナー＋防寒ズボン']
+            ];
+            const r=rows.find(r=>t>=r[0]); return {label:r[1],jacket:r[2],pants:r[3]};
         }
 
         function getWindStateLabel(speed) {
@@ -938,7 +918,7 @@
             if (titleEl) titleEl.innerText = `${activeLocation || '地点'} 降水予報`;
             if (dateEl) dateEl.innerText = labelText;
 
-            let pops = [0, 0, 0, 0];
+            let pops = [null, null, null, null];
             let temps = ['--', '--', '--', '--'];
 
             // ★ 明日をタップした際はメインカードの短期予報データと100%完全一致させる
@@ -962,12 +942,12 @@
                 ];
 
                 slotRanges.forEach(slot => {
-                    let maxP = 0;
+                    let maxP = null;
                     for (let h = slot.start; h <= slot.end; h++) {
                         const timePrefix = `${dateStr}T${String(h).padStart(2, '0')}`;
                         const idx = hourly.time.findIndex(t => t.startsWith(timePrefix));
-                        if (idx !== -1 && hourly.precipitation_probability?.[idx] !== undefined) {
-                            if (hourly.precipitation_probability[idx] > maxP) {
+                        if (idx !== -1 && validNumber(hourly.precipitation_probability?.[idx])) {
+                            if (maxP === null || hourly.precipitation_probability[idx] > maxP) {
                                 maxP = hourly.precipitation_probability[idx];
                             }
                         }
@@ -981,20 +961,20 @@
                     }
                 });
             } else {
-                const fallbackPop = maxPopVal ?? 10;
+                const fallbackPop = null;
                 pops = [fallbackPop, fallbackPop, fallbackPop, fallbackPop];
             }
 
             for (let i = 0; i < 4; i++) {
                 const popSlot = document.getElementById(`dayPopSlot${i}`);
                 const tempSlot = document.getElementById(`dayPopTemp${i}`);
-                if (popSlot) popSlot.innerText = `${pops[i]}%`;
+                if (popSlot) popSlot.innerText = `${pops[i] ?? "--"}%`;
                 if (tempSlot) tempSlot.innerText = (temps[i] !== '--') ? `約${temps[i]}℃` : '--';
             }
 
-            const maxDailyPop = Math.max(...pops);
+            const maxDailyPop = maxKnown(pops);
             if (summaryText) {
-                if (maxDailyPop >= 60) {
+                if (maxDailyPop === null) {summaryText.innerText='降水確率データなし';} else if (maxDailyPop >= 60) {
                     summaryText.innerText = '雨の可能性が高い';
                     summaryText.className = 'text-[12px] font-bold text-[#e03131]';
                 } else if (maxDailyPop >= 30) {
@@ -1007,7 +987,7 @@
             }
 
             if (adviceBox) {
-                if (maxDailyPop >= 50) {
+                if (maxDailyPop === null) {adviceBox.textContent='降水確率を取得できないため判断できません。';} else if (maxDailyPop >= 50) {
                     adviceBox.innerHTML = `☔ <strong>雨具の用意が安心です</strong><br>降水確率が${maxDailyPop}%まで上がっています。外出時は折りたたみ傘をお持ちください。`;
                 } else if (maxDailyPop >= 30) {
                     adviceBox.innerHTML = `🌤️ <strong>急な天候変化にご注意</strong><br>一時的なにわか雨の可能性があります。空模様の変化にご留意ください。`;
@@ -1030,7 +1010,7 @@
             if (hourlyListEl && currentData.hourlyDetails) {
                 let listToDisplay = currentData.hourlyDetails;
                 if (selectedDay === 'today') {
-                    const currentHour = new Date().getHours();
+                    const currentHour = jstClock().getHours();
                     listToDisplay = listToDisplay.filter(item => parseInt(item.hour, 10) >= currentHour);
                 }
 
@@ -1073,100 +1053,135 @@
             toggleSettingsModal(false);
         }
 
-        function resolveAreaAndCoords(locationName) {
-            for (const [key, data] of Object.entries(PREFECTURE_MAP)) {
-                if (locationName.includes(key)) {
-                    return data;
+        let requestGeneration = 0;
+        let forecastAbort = null;
+        let areaTree = null;
+        const resolvedLocations = new Map();
+        const validNumber = v => typeof v === 'number' && Number.isFinite(v);
+        const maxKnown = xs => {const v=xs.filter(validNumber);return v.length ? Math.max(...v) : null;};
+        async function getJSON(url, signal) {
+            const controller = new AbortController();
+            const abort = () => controller.abort();
+            if (signal?.aborted) controller.abort();
+            else signal?.addEventListener('abort', abort, {once:true});
+            const timer=setTimeout(abort,15000);
+            try {const r=await fetch(url,{signal:controller.signal,cache:'no-store'});if(!r.ok) throw new Error('HTTP '+r.status);return await r.json();}
+            finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+        }
+        async function resolveAreaAndCoords(name, signal) {
+            if(resolvedLocations.has(name)) return resolvedLocations.get(name);
+            const [hits,tree]=await Promise.all([
+                getJSON('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(name),signal),
+                areaTree ? Promise.resolve(areaTree) : getJSON('https://www.jma.go.jp/bosai/common/const/area.json',signal)
+            ]);
+            areaTree=tree;
+            const normalize = x => x.replace(/\s/g,'');
+            const exact=hits.filter(h=>normalize(h.properties?.title||'')===normalize(name));
+            const candidates=exact.length ? exact : hits;
+            if(candidates.length!==1) throw new Error('地点を一意に特定できません。都道府県名から市区町村名まで入力してください。');
+            const hit=candidates[0], [lon,lat]=hit.geometry?.coordinates||[];
+            if(!validNumber(lat)||!validNumber(lon)) throw new Error('地点の座標を取得できません');
+            const muni=String(hit.properties?.addressCode||'').slice(0,5);
+            let city=tree.class20s?.[muni+'00'];
+            if(!city) {
+                const prefecture=Object.entries(PREFECTURE_MAP).find(([name])=>hit.properties.title.startsWith(name));
+                const matches=Object.entries(tree.class20s||{}).filter(([code,entry])=>hit.properties.title.includes(entry.name) && (!prefecture || code.startsWith(prefecture[1].code.slice(0,2))));
+                const longest=Math.max(0,...matches.map(([,entry])=>entry.name.length));
+                const specific=matches.filter(([,entry])=>entry.name.length===longest);
+                if(specific.length===1) city=specific[0][1];
+            }
+            const region=tree.class15s?.[city?.parent]?.parent;
+            const office=tree.class10s?.[region]?.parent;
+            if(!office) throw new Error('気象庁の予報区域を特定できません。市区町村名まで入力してください。');
+            const value={lat,lon,code:office,region,title:hit.properties.title};
+            resolvedLocations.set(name,value);return value;
+        }
+        function selectJmaAreas(data, info) {
+            if(!Array.isArray(data)) return null;
+            const copy=JSON.parse(JSON.stringify(data));
+            for(const [reportIndex,report] of copy.entries()) for(const ts of report.timeSeries||[]) {
+                const areas=ts.areas||[];
+                const matched=areas.find(a=>a.area?.code===info.region) || (reportIndex>0 ? areas.find(a=>a.area?.code===info.code) : null);
+                if(areas.some(a=>a.weathers||a.weatherCodes||a.pops)) ts.areas=matched?[matched]:[];
+                else if(areas.length>1) {
+                    const station=areas.find(a=>info.title.includes(a.area?.name));
+                    ts.areas=station?[station]:[];
                 }
             }
-            return { code: '130000', lat: 35.6895, lon: 139.6917 };
+            return copy;
         }
-
-        function calculateNextRain(meteoData) {
-            if (!meteoData?.hourly?.time) {
-                return { text: '予報データを取得できませんでした', status: 'unknown' };
-            }
-
-            const times = meteoData.hourly.time;
-            const pops = meteoData.hourly.precipitation_probability || [];
-            const precips = meteoData.hourly.precipitation || [];
-            const codes = meteoData.hourly.weathercode || [];
-            
-            const now = new Date();
-            const jstYear = now.getFullYear();
-            const jstMonth = String(now.getMonth() + 1).padStart(2, '0');
-            const jstDate = String(now.getDate()).padStart(2, '0');
-            const jstHour = String(now.getHours()).padStart(2, '0');
-            const currentJstPrefix = `${jstYear}-${jstMonth}-${jstDate}T${jstHour}`;
-            
-            let startIdx = times.findIndex(t => t >= currentJstPrefix);
-            if (startIdx === -1) startIdx = 0;
-
-            const daysNames = ['日', '月', '火', '水', '木', '金', '土'];
-            let foundRainIdx = -1;
-
-            for (let i = startIdx; i < times.length; i++) {
-                const pop = pops[i] ?? 0;
-                const precip = precips[i] ?? 0;
-                const code = codes[i] ?? 0;
-
-                const isRainCode = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99);
-                if (isRainCode || pop >= 50 || precip >= 0.2) {
-                    foundRainIdx = i;
-                    break;
+        function mergeModels(primary, backup) {
+            const out={hourly:{},daily:{}};
+            for(const section of ['hourly','daily']) {
+                const a=primary?.[section], b=backup?.[section];
+                const times=[...new Set([...(a?.time||[]),...(b?.time||[])])].sort();
+                out[section].time=times;
+                for(const key of new Set([...Object.keys(a||{}),...Object.keys(b||{})])) {
+                    if(key==='time') continue;
+                    out[section][key]=times.map(t=>{
+                        const i=a?.time.indexOf(t), j=b?.time.indexOf(t);
+                        const x=a?.[key]?.[i];
+                        if(validNumber(x)) return x;
+                        // 気象庁の体感温度が欠けても、日本の気温・湿度・風で先に補完する。
+                        if(section==='hourly' && key==='apparent_temperature') {
+                            const temp=a?.temperature_2m?.[i],rh=a?.relative_humidity_2m?.[i],wind=a?.windspeed_10m?.[i];
+                            if([temp,rh,wind].every(validNumber)) {
+                                const e=rh/100*6.105*Math.exp(17.27*temp/(237.7+temp));
+                                return temp+0.33*e-0.70*(wind/3.6)-4;
+                            }
+                        }
+                        return b?.[key]?.[j]??null;
+                    });
                 }
             }
-
-            if (foundRainIdx === -1) {
-                return {
-                    text: 'この先1週間は雨の心配はありません ☀️',
-                    status: 'clear'
-                };
-            }
-
-            const targetTimeStr = times[foundRainIdx];
-            const rainDate = new Date(targetTimeStr);
-            const rainPop = pops[foundRainIdx] ?? 0;
-            const hourStr = String(rainDate.getHours()).padStart(2, '0');
-
-            const diffMs = rainDate.getTime() - now.getTime();
-            const diffHours = Math.round(diffMs / (1000 * 60 * 60));
-
-            const todayZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const rainZero = new Date(rainDate.getFullYear(), rainDate.getMonth(), rainDate.getDate());
-            const diffDays = Math.round((rainZero - todayZero) / (1000 * 60 * 60 * 24));
-
-            if (diffHours <= 0) {
-                return {
-                    text: `現在、雨の予報が出ています（降水確率 ${rainPop}%）`,
-                    status: 'raining'
-                };
-            } else if (diffHours <= 24) {
-                return {
-                    text: `約${diffHours}時間後 (${hourStr}:00頃) から雨予報（降水確率 ${rainPop}%）`,
-                    status: 'hours'
-                };
-            } else if (diffDays === 1) {
-                return {
-                    text: `明日 (${hourStr}:00頃) から雨の予報です（降水確率 ${rainPop}%）`,
-                    status: 'tomorrow'
-                };
-            } else {
-                const dayName = daysNames[rainDate.getDay()];
-                return {
-                    text: `直近の雨は【${diffDays}日後・${dayName}曜日】の予報です（${rainDate.getMonth() + 1}/${rainDate.getDate()}）`,
-                    status: 'days'
-                };
-            }
+            return out;
         }
+
+        function calculateNextRain(meteoData, nowMs=Date.now()) {
+            const hourly=meteoData?.hourly;
+            if(!Array.isArray(hourly?.time)) return {text:'降水予報を取得できません',status:'unknown'};
+            const times=hourly.time;
+            const pops=hourly.precipitation_probability||[];
+            const amounts=hourly.precipitation||[];
+            const codes=hourly.weathercode||[];
+            const toMs=t=>Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(t)?t:t+'+09:00');
+            const currentHour=Math.floor(nowMs/3600000)*3600000;
+            const first=times.findIndex(t=>toMs(t)>=currentHour);
+            if(first<0 || toMs(times[first])>currentHour) return {text:'降水予報を取得できません',status:'unknown'};
+            let last=first-1;
+            // 途中の欠損を飛ばして「雨なし」の期間を延ばさない。
+            for(let i=first;i<times.length;i++) {
+                if(!validNumber(pops[i])&&!validNumber(amounts[i])) break;
+                if(i>first && toMs(times[i])-toMs(times[i-1])!==3600000) break;
+                last=i;
+                const c=codes[i];
+                const rainCode=(c>=51&&c<=67)||(c>=80&&c<=82)||(c>=95&&c<=99);
+                if(rainCode || pops[i]>=50 || amounts[i]>=0.2) {
+                    const hours=Math.max(0,(toMs(times[i])-nowMs)/3600000);
+                    if(hours<1) return {text:'現在〜1時間以内に雨予報',status:'raining'};
+                    if(hours<24) return {text:`約${Math.max(1,Math.round(hours))}時間後に雨予報`,status:'hours'};
+                    const days=Math.floor(hours/24),rest=Math.round(hours-days*24);
+                    return {text:rest===24?`約${days+1}日後に雨予報`:rest?`約${days}日${rest}時間後に雨予報`:`約${days}日後に雨予報`,status:'days'};
+                }
+            }
+            if(last<first) return {text:'降水予報を取得できません',status:'unknown'};
+            // 端数を切り捨て、実際に確認した期間より長く表示しない。
+            const hours=Math.max(0,Math.floor((toMs(times[last])-nowMs)/3600000));
+            if(hours<1) return {text:'今後の降水データが不足しています',status:'unknown'};
+            const days=Math.floor(hours/24),rest=hours%24;
+            const duration=days ? `${days}日間` : `${hours}時間`;
+            return {text:`今後${duration}に雨予報なし`,status:'clear'};
+        }
+
+        function jstClock(ms=Date.now()) {return new Date(new Date(ms).toLocaleString('en-US',{timeZone:'Asia/Tokyo'}));}
 
         function getTodayDateString() {
-            const now = new Date();
+            const now = jstClock();
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         function getTomorrowDateString() {
-            const now = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const now = jstClock(Date.now() + 24 * 60 * 60 * 1000);
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
@@ -1303,8 +1318,8 @@
                     ptrText.innerText = '最新データを更新中...';
 
                     try {
-                        await fetchForecastData(true);
-                        ptrText.innerText = '更新完了';
+                        const success = await fetchForecastData(true);
+                        ptrText.innerText = success ? '更新完了' : '更新失敗';
                     } catch (err) {
                         ptrText.innerText = '更新失敗';
                     } finally {
@@ -1376,6 +1391,12 @@
         }
 
         async function fetchForecastData(isPullRefresh = false) {
+            const generation = ++requestGeneration;
+            forecastAbort?.abort();
+            forecastAbort = new AbortController();
+            const signal = forecastAbort.signal;
+            cachedForecastData = null; cachedRawMeteoData = null; cachedNextRainInfo = null;
+            document.getElementById('resultScrollContainer')?.classList.add('opacity-50');
             const btn = document.getElementById('checkBtn');
             const loading = document.getElementById('loading');
             const errorBox = document.getElementById('errorBox');
@@ -1394,7 +1415,7 @@
             }
 
             try {
-                const areaInfo = resolveAreaAndCoords(targetLocation);
+                const areaInfo = await resolveAreaAndCoords(targetLocation, signal);
                 const areaCode = areaInfo.code;
                 const coords = { lat: areaInfo.lat, lon: areaInfo.lon };
 
@@ -1408,12 +1429,20 @@
                 // Open-Meteo: 気象庁数値予報（安定パラメータ）
                 const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,apparent_temperature_max,apparent_temperature_min,temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation_probability,precipitation,weathercode,windspeed_10m&timezone=Asia%2FTokyo&forecast_days=8${cacheBuster}`;
 
-                const [jmaForecastRes, jmaOverviewRes, meteoRes] = await Promise.all([
-                    fetch(jmaForecastUrl).catch(() => null),
-                    fetch(jmaOverviewUrl).catch(() => null),
-                    fetch(meteoUrl).catch(() => null)
+                const jmaModelUrl = `https://api.open-meteo.com/v1/jma?latitude=${coords.lat}&longitude=${coords.lon}&hourly=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max&models=jma_seamless&timezone=Asia%2FTokyo&forecast_days=9`;
+                const [official, overview, primary, backup] = await Promise.all([
+                    getJSON(jmaForecastUrl,signal).catch(()=>null),
+                    getJSON(jmaOverviewUrl,signal).catch(()=>null),
+                    getJSON(jmaModelUrl,signal).catch(()=>null),
+                    getJSON(meteoUrl.replace('forecast_days=8','forecast_days=9'),signal).catch(()=>null)
                 ]);
-
+                if(generation!==requestGeneration || signal.aborted) return false;
+                if(!official && !primary && !backup) throw new Error('天気データを取得できませんでした。再度更新してください。');
+                const response = data => data ? {ok:true,json:async()=>data} : null;
+                const jmaForecastRes=response(selectJmaAreas(official,areaInfo));
+                const jmaOverviewRes=response(overview);
+                const meteoRes=response(primary||backup ? mergeModels(primary,backup) : null);
+                const sourceNote = primary ? '時間別：気象庁モデル優先（Open-Meteo経由）。欠損項目・降水確率は他モデルで補完' : '時間別：気象庁モデル取得不可。他モデルで補完';
                 let overviewReportTime = '';
                 let overviewTarget = '';
 
@@ -1433,7 +1462,7 @@
                 }
 
                 if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || targetLocation;
-                if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁公式発表';
+                if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁発表時刻：取得不可';
 
                 let jmaData = null;
                 if (jmaForecastRes && jmaForecastRes.ok) {
@@ -1457,14 +1486,14 @@
                 cachedNextRainInfo = calculateNextRain(meteoData);
 
                 const parseDayData = (dateStr, fallbackIdx, labelPrefix) => {
-                    let weatherText = 'くもり';
-                    let windText = '北寄りの風';
+                    let weatherText = 'データ取得不可';
+                    let windText = '風向データなし';
                     let maxTemp = null;
                     let minTemp = null;
                     let popList = [];
                     let targetDateFormatted = '';
                     let apparentTemp = null;
-                    let maxWindSpeed = 3.0;
+                    let maxWindSpeed = null;
                     let morningTemp = null;
                     let noonTemp = null;
                     let nightTemp = null;
@@ -1485,7 +1514,7 @@
 
                             let targetIdx = timeDefines.findIndex(t => t.startsWith(dateStr));
                             if (targetIdx === -1) {
-                                targetIdx = Math.min(fallbackIdx, Math.max(0, timeDefines.length - 1));
+                                targetIdx = -1;
                             }
 
                             if (area?.weathers?.[targetIdx]) {
@@ -1558,6 +1587,9 @@
                     const daily = meteoData?.daily;
                     if (daily && Array.isArray(daily.time)) {
                         let mIdx = daily.time.indexOf(dateStr);
+                        if(weatherText === 'データ取得不可' && validNumber(daily.weathercode?.[mIdx])) {
+                            const c=daily.weathercode[mIdx];weatherText=c<2?'晴れ':c<4?'曇り':c>=71&&c<=77||c>=85&&c<=86?'雪':c>=51?'雨':'霧';
+                        }
                         if (mIdx !== -1) {
                             if (minTemp === null && daily.temperature_2m_min?.[mIdx] !== undefined && daily.temperature_2m_min[mIdx] !== null) {
                                 minTemp = Math.round(daily.temperature_2m_min[mIdx]);
@@ -1604,23 +1636,18 @@
                             const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
                             const idx = hTime.findIndex(t => t.startsWith(prefix));
                             if (idx !== -1) {
-                                const t = hTemp[idx];
-                                const rh = hHumidity[idx] ?? 50;
-                                const ws = (hWind[idx] ?? 10) / 3.6;
-
-                                if (t !== undefined && t !== null) {
-                                    const e = (rh / 100) * 6.105 * Math.exp((17.27 * t) / (237.7 + t));
-                                    const calculatedAt = t + (0.33 * e) - (0.70 * ws) - 4.0;
-                                    targetHoursApparent.push(calculatedAt);
-                                } else if (hApparent[idx] !== undefined && hApparent[idx] !== null) {
-                                    targetHoursApparent.push(hApparent[idx]);
+                                if(validNumber(hApparent[idx])) targetHoursApparent.push(hApparent[idx]);
+                                else if([hTemp[idx],hHumidity[idx],hWind[idx]].every(validNumber)) {
+                                    const t=hTemp[idx],rh=hHumidity[idx],ws=hWind[idx]/3.6;
+                                    const e=(rh/100)*6.105*Math.exp(17.27*t/(237.7+t));
+                                    targetHoursApparent.push(t+0.33*e-0.70*ws-4);
                                 }
                             }
                         }
 
-                        if (targetHoursApparent.length > 0) {
+                        if (targetHoursApparent.length === 6) {
                             const sum = targetHoursApparent.reduce((acc, cur) => acc + cur, 0);
-                            apparentTemp = Math.round(sum / targetHoursApparent.length);
+                            apparentTemp = sum / targetHoursApparent.length;
                         }
 
                         // 6時間スロット補完
@@ -1633,12 +1660,12 @@
 
                         slotRanges.forEach(slot => {
                             if (pop6h[slot.index] === null) {
-                                let maxSlotPop = 0;
+                                let maxSlotPop = null;
                                 for (let h = slot.start; h <= slot.end; h++) {
                                     const prefix = `${dateStr}T${String(h).padStart(2, '0')}`;
                                     const idx = hTime.findIndex(t => t.startsWith(prefix));
                                     if (idx !== -1 && hPop[idx] !== undefined && hPop[idx] !== null) {
-                                        if (hPop[idx] > maxSlotPop) maxSlotPop = hPop[idx];
+                                        if (maxSlotPop === null || hPop[idx] > maxSlotPop) maxSlotPop = hPop[idx];
                                     }
                                 }
                                 pop6h[slot.index] = maxSlotPop;
@@ -1655,19 +1682,10 @@
                                 ? Math.round(hPop[idx]) 
                                 : null;
 
-                            if ((pVal === null || isNaN(pVal)) && idx !== -1 && hPrecip[idx] !== undefined && hPrecip[idx] !== null) {
-                                const pAmount = hPrecip[idx];
-                                if (pAmount >= 1.0) pVal = 90;
-                                else if (pAmount >= 0.1) pVal = 60;
-                            }
-
-                            if (pVal === null || isNaN(pVal)) {
-                                const slotIdx = Math.floor(h / 6);
-                                pVal = (pop6h[slotIdx] !== null && pop6h[slotIdx] !== undefined) ? pop6h[slotIdx] : (dailyMaxPop ?? 10);
-                            }
-
-                            const wCode = (idx !== -1 && hWeather[idx] !== undefined && hWeather[idx] !== null) ? hWeather[idx] : 0;
-                            const wSpeed = (idx !== -1 && hWind[idx] !== undefined && hWind[idx] !== null) ? Math.round(hWind[idx] / 3.6) : 0;
+                            // 時間別の確率を6時間確率や降水量から捏造しない。
+                            if (!validNumber(pVal)) pVal = '--';
+                            const wCode = validNumber(hWeather[idx]) ? hWeather[idx] : null;
+                            const wSpeed = validNumber(hWind[idx]) ? (hWind[idx]/3.6).toFixed(1) : '--';
 
                             hourlyDetails.push({
                                 hour: String(h).padStart(2, '0'),
@@ -1679,22 +1697,9 @@
                         }
                     }
 
-                    // 安全なフォールバック
-                    if (maxTemp === null) maxTemp = 20;
-                    if (minTemp === null) minTemp = 14;
-                    if (minTemp >= maxTemp) minTemp = maxTemp - 5;
-
-                    if (apparentTemp === null) {
-                        apparentTemp = Math.round(maxTemp - (maxWindSpeed * 0.7));
-                    }
-                    if (morningTemp === null) morningTemp = minTemp + 2;
-                    if (noonTemp === null) noonTemp = maxTemp;
-                    if (nightTemp === null) nightTemp = minTemp + 3;
-                    if (dailyMaxPop === null) dailyMaxPop = 10;
-
-                    pop6h = pop6h.map(p => (p !== null && p !== undefined ? p : dailyMaxPop));
-
+                    // 欠損は欠損のまま表示し、服装判定には6時間すべてを要求する。
                     return {
+                        sourceNote,
                         weatherText,
                         windText,
                         maxTemp,
@@ -1715,6 +1720,7 @@
                 const todayData = parseDayData(todayStr, 0, '今日');
                 const tomorrowData = parseDayData(tomorrowStr, 1, '明日');
 
+                if(generation!==requestGeneration || signal.aborted) return;
                 cachedForecastData = {
                     today: todayData,
                     tomorrow: tomorrowData
@@ -1730,14 +1736,23 @@
                 if (!isPullRefresh && resultScroll) {
                     resultScroll.scrollTop = 0;
                 }
+                return true;
 
             } catch (err) {
+                if(generation!==requestGeneration) return;
+                cachedForecastData=null; cachedRawMeteoData=null;
+                renderForecastView({weatherText:"データ取得不可",windText:"データなし",pop6h:[null,null,null,null],targetDateFormatted:targetLocation+"：取得失敗"});
+                document.getElementById("weeklyForecastList").textContent="予報データを取得できません";
+                document.getElementById("nextRainText").textContent="降水予報を取得できません";
                 console.error("Forecast Error:", err);
                 if (errorBox) {
                     errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
                     errorBox.classList.remove('hidden');
                 }
+                return false;
             } finally {
+                if(generation!==requestGeneration) return;
+                document.getElementById("resultScrollContainer")?.classList.remove("opacity-50");
                 if (!isPullRefresh && btn && loading) {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'pointer-events-none');
@@ -1790,21 +1805,21 @@
             } = data;
 
             if (dateEl) dateEl.innerText = targetDateFormatted;
-            if (iconEl) iconEl.innerHTML = renderWeatherSvgIcon(weatherText);
+            if (iconEl) iconEl.innerHTML = weatherText === 'データ取得不可' ? '<span>--</span>' : renderWeatherSvgIcon(weatherText);
             if (weatherTextEl) weatherTextEl.innerText = weatherText;
-            if (maxTempEl) maxTempEl.innerText = maxTemp;
-            if (minTempEl) minTempEl.innerText = minTemp;
-            if (apparentTempEl) apparentTempEl.innerText = `${apparentTemp}℃`;
+            if (maxTempEl) maxTempEl.innerText = maxTemp ?? "--";
+            if (minTempEl) minTempEl.innerText = minTemp ?? "--";
+            if (apparentTempEl) apparentTempEl.innerText = `${validNumber(apparentTemp) ? apparentTemp.toFixed(1) : "--"}℃`;
 
             if (pop6h && pop6h.length === 4) {
-                if (popSlot0) popSlot0.innerText = `${pop6h[0]}%`;
-                if (popSlot1) popSlot1.innerText = `${pop6h[1]}%`;
-                if (popSlot2) popSlot2.innerText = `${pop6h[2]}%`;
-                if (popSlot3) popSlot3.innerText = `${pop6h[3]}%`;
+                if (popSlot0) popSlot0.innerText = `${pop6h[0] ?? "--"}%`;
+                if (popSlot1) popSlot1.innerText = `${pop6h[1] ?? "--"}%`;
+                if (popSlot2) popSlot2.innerText = `${pop6h[2] ?? "--"}%`;
+                if (popSlot3) popSlot3.innerText = `${pop6h[3] ?? "--"}%`;
             }
 
-            const windDesc = getWindStateLabel(maxWindSpeed);
-            if (subWindSpeed) subWindSpeed.innerText = `💨 約 ${maxWindSpeed} m/s`;
+            const windDesc = validNumber(maxWindSpeed) ? getWindStateLabel(maxWindSpeed) : "データなし";
+            if (subWindSpeed) subWindSpeed.innerText = `💨 約 ${maxWindSpeed ?? "--"} m/s`;
             if (subWindDirection) {
                 const baseWind = windText || '穏やか';
                 subWindDirection.innerText = `${baseWind} (${windDesc})`;
@@ -1813,6 +1828,9 @@
             // 指定された【手持ち服リスト】【判定基準】に基づく服装出力（余分なタグは一切追加しない）
             const outfit = evaluateClothingByCriteria(apparentTemp);
             if (criteriaBadge) criteriaBadge.innerText = outfit.label;
+            if (weatherTextEl) weatherTextEl.title = data.sourceNote || "";
+            if (apparentTempEl) apparentTempEl.title = "10〜15時の6時点の平均。丸める前の値で服装を判定";
+
             if (outfitSec) {
                 outfitSec.innerHTML = `
                     <div class="bg-white rounded-xl p-2.5 border border-orange-200/80 shadow-xs">
@@ -1830,18 +1848,18 @@
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">朝 (8時)</div>
-                        <div class="font-bold text-[#1c1c1e] font-mono text-[16px] my-1">${morningTemp}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
+                        <div class="font-bold text-[#1c1c1e] font-mono text-[16px] my-1">${morningTemp ?? "--"}℃</div>
+                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(morningTemp) ? 'データなし' : morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">昼 (14時)</div>
-                        <div class="font-bold text-orange-600 font-mono text-[16px] my-1">${noonTemp}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${noonTemp >= 22 ? '上着不要' : '適温'}</div>
+                        <div class="font-bold text-orange-600 font-mono text-[16px] my-1">${noonTemp ?? "--"}℃</div>
+                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(noonTemp) ? 'データなし' : noonTemp >= 22 ? '上着不要' : '適温'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">夜 (20時)</div>
-                        <div class="font-bold text-[#007aff] font-mono text-[16px] my-1">${nightTemp}℃</div>
-                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
+                        <div class="font-bold text-[#007aff] font-mono text-[16px] my-1">${nightTemp ?? "--"}℃</div>
+                        <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(nightTemp) ? 'データなし' : nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
                     </div>
                 `;
             }
@@ -1852,7 +1870,7 @@
                 if (hasRain) {
                     advice.push('☔ 雨の可能性があるため、折りたたみ傘やレインコートのご用意をおすすめします。');
                 }
-                if (maxTemp - minTemp >= 8) {
+                if (validNumber(maxTemp) && validNumber(minTemp) && maxTemp - minTemp >= 8) {
                     advice.push('🧣 朝晩と日中の寒暖差が大きいため、脱ぎ着しやすい羽織りものが便利です。');
                 }
                 if (maxWindSpeed >= 6) {
@@ -1860,14 +1878,21 @@
                 }
 
                 if (advice.length === 0) {
-                    advice.push('✨ 気温・風ともに穏やかな過ごしやすい予報です。いつもの快適な装いでお出かけください。');
+                    advice.push('👕 表示された服装を目安に、暑い・寒いと感じたら脱ぎ着して調整してください。');
                 }
 
+                if (weatherText === 'データ取得不可' && !validNumber(maxTemp) && !validNumber(apparentTemp)) {
+                    advice = ['天気データを取得できませんでした。再度更新してください。', '服装はデータ取得後に表示します。'];
+                } else if (!validNumber(apparentTemp)) {
+                    advice.unshift('10〜15時の体感温度がそろわないため、服装は判定できません。再度更新してください。');
+                }
                 accessoryAdvice.innerHTML = advice.join('<br>');
             }
         }
 
         function renderWeeklyListIcon(weatherCode, weatherText = '') {
+            if (weatherCode === null && !weatherText) return '<span class="text-gray-400">--</span>';
+            if (Number(weatherCode)>=100) {const c=Number(weatherCode);weatherText=c>=400?'雪':c>=300?'雨':c>=200?'曇り':'晴れ';weatherCode=null;}
             const isRain = weatherText.includes('雨') || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
             const isSnow = weatherText.includes('雪') || (weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86);
             const isSunCloud = weatherText.includes('晴') && weatherText.includes('曇');
@@ -1979,7 +2004,7 @@
                 let maxT = null;
                 let minT = null;
                 let pop = null;
-                let reliability = 'A';
+                let reliability = '--';
                 let weatherCode = null;
 
                 // ★ 明日（1日目）は、メインカードの気象庁短期高精度データと100%完全一致させる
@@ -1987,9 +2012,12 @@
                     const tm = cachedForecastData.tomorrow;
                     maxT = tm.maxTemp;
                     minT = tm.minTemp;
-                    pop = Math.max(...tm.pop6h);
-                    reliability = 'A';
-                    if (tm.weatherText.includes('雨')) {
+                    pop = maxKnown(tm.pop6h);
+                    const ri=jmaWeatherTimes.findIndex(t=>t.startsWith(dateStr));
+                    reliability=jmaWeatherArea?.reliabilities?.[ri] || '--';
+                    if (tm.weatherText === 'データ取得不可') {weatherCode=null;
+                    } else if (tm.weatherText.includes('雪')) {weatherCode=71;
+                    } else if (tm.weatherText.includes('雨')) {
                         weatherCode = 61;
                     } else if (tm.weatherText.includes('晴') && tm.weatherText.includes('曇')) {
                         weatherCode = 2;
@@ -2034,21 +2062,19 @@
                             if (pop === null && meteoDaily.precipitation_probability_max?.[mIdx] !== undefined && meteoDaily.precipitation_probability_max[mIdx] !== null) {
                                 pop = meteoDaily.precipitation_probability_max[mIdx];
                             }
-                            if (!weatherCode && meteoDaily.weathercode?.[mIdx] !== undefined) {
+                            if (weatherCode === null && meteoDaily.weathercode?.[mIdx] !== undefined) {
                                 weatherCode = meteoDaily.weathercode[mIdx];
                             }
                         }
                     }
                 }
 
-                if (pop === null) pop = 10;
-                if (!reliability) {
-                    reliability = pop >= 50 ? 'C' : (pop >= 30 ? 'B' : 'A');
-                }
+                
+                if(!['A','B','C'].includes(reliability)) reliability=null;
 
                 const displayMax = maxT !== null ? maxT : '--';
                 const displayMin = minT !== null ? minT : '--';
-                const displayPop = `${pop}%`;
+                const displayPop = `${pop ?? "--"}%`;
                 const iconSvg = renderWeeklyListIcon(weatherCode, '');
                 const labelText = `${dateNum}日(${dayText})`;
 
@@ -2076,11 +2102,9 @@
                             ${displayPop}
                         </div>
 
-                        <div class="w-[28px] flex items-center justify-center shrink-0 pl-1">
-                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">
-                                ${reliability}
-                            </span>
-                        </div>
+                        ${reliability ? `<div class="w-[28px] flex items-center justify-center shrink-0 pl-1" title="気象庁の予報信頼度 ${reliability}" aria-label="気象庁の予報信頼度 ${reliability}">
+                            <span class="w-5 h-5 rounded-full border border-[#8e8e93] text-[#4b5563] text-[11px] font-bold flex items-center justify-center font-sans">${reliability}</span>
+                        </div>` : ''}
 
                         <div class="text-[#c7c7cc] text-[14px] shrink-0 pl-0.5">
                             ›
