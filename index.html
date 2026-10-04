@@ -685,31 +685,35 @@
                 keyInput.value = savedApiKey;
             }
 
+            appReadyForRefresh = true;
             showForecastView(false).catch(err => {
                 console.warn("Auto-start forecast failed:", err);
             });
         });
 
-        function checkAndAutoRefresh() {
-            const now = Date.now();
-            if (now - lastFetchedTimestamp >= 10 * 60 * 1000) {
-                const forecastContainer = document.getElementById('forecastScreenContainer');
-                if (forecastContainer && !forecastContainer.classList.contains('hidden')) {
-                    fetchForecastData(true);
+        // 起動時と、アプリが画面に戻ったときに更新する。
+        let appReadyForRefresh = false;
+        let resumeRefreshTimer = null;
+        function queueResumeRefresh() {
+            if (!appReadyForRefresh || document.visibilityState !== 'visible') return;
+            // 復帰時に重なるイベントを1回の取得にまとめる。
+            if (resumeRefreshTimer !== null) clearTimeout(resumeRefreshTimer);
+            resumeRefreshTimer = setTimeout(() => {
+                resumeRefreshTimer = null;
+                if (document.visibilityState === 'visible') {
+                    fetchForecastData(true).catch(err => console.warn('Resume update failed:', err));
                 }
-            }
+            }, 200);
         }
-
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                checkAndAutoRefresh();
+            if (document.visibilityState === 'visible') queueResumeRefresh();
+            else if (resumeRefreshTimer !== null) {
+                clearTimeout(resumeRefreshTimer);
+                resumeRefreshTimer = null;
             }
         });
-
-        window.addEventListener('pageshow', (event) => {
-            if (event.persisted) {
-                checkAndAutoRefresh();
-            }
+        window.addEventListener('pageshow', event => {
+            if (event.persisted) queueResumeRefresh();
         });
 
         function loadLocations() {
@@ -725,6 +729,7 @@
                 saveLocationsToStorage();
             }
 
+            if(Array.isArray(locations)) locations=locations.filter(x=>typeof x==='string'&&x.trim());
             if (!Array.isArray(locations) || locations.length === 0) {
                 locations = ['東京都品川区'];
             }
@@ -956,7 +961,7 @@
 
                     const midPrefix = `${dateStr}T${String(slot.midHour).padStart(2, '0')}`;
                     const midIdx = hourly.time.findIndex(t => t.startsWith(midPrefix));
-                    if (midIdx !== -1 && hourly.temperature_2m?.[midIdx] !== undefined) {
+                    if (midIdx !== -1 && validNumber(hourly.temperature_2m?.[midIdx])) {
                         temps[slot.idx] = Math.round(hourly.temperature_2m[midIdx]);
                     }
                 });
@@ -992,7 +997,7 @@
                 } else if (maxDailyPop >= 30) {
                     adviceBox.innerHTML = `🌤️ <strong>急な天候変化にご注意</strong><br>一時的なにわか雨の可能性があります。空模様の変化にご留意ください。`;
                 } else {
-                    adviceBox.innerHTML = `☀️ <strong>外出に良好な日です</strong><br>まとまった降水の可能性は低く、安心してお出かけできる予報です。`;
+                    adviceBox.innerHTML = `現在の予報では降水確率は低めです。最新情報も確認してください。`;
                 }
             }
         }
@@ -1145,6 +1150,7 @@
             const amounts=hourly.precipitation||[];
             const codes=hourly.weathercode||[];
             const toMs=t=>Date.parse(/(?:Z|[+-]\d{2}:\d{2})$/.test(t)?t:t+'+09:00');
+            const threshold = 50;
             const currentHour=Math.floor(nowMs/3600000)*3600000;
             const first=times.findIndex(t=>toMs(t)>=currentHour);
             if(first<0 || toMs(times[first])>currentHour) return {text:'降水予報を取得できません',status:'unknown'};
@@ -1156,12 +1162,14 @@
                 last=i;
                 const c=codes[i];
                 const rainCode=(c>=51&&c<=67)||(c>=80&&c<=82)||(c>=95&&c<=99);
-                if(rainCode || pops[i]>=50 || amounts[i]>=0.2) {
+                if(rainCode || pops[i]>=threshold || amounts[i]>=0.2) {
+                    const snow=(c>=71&&c<=77)||(c>=85&&c<=86);
+                    const kind=snow?'雪予報':'雨予報';
                     const hours=Math.max(0,(toMs(times[i])-nowMs)/3600000);
-                    if(hours<1) return {text:'現在〜1時間以内に雨予報',status:'raining'};
-                    if(hours<24) return {text:`約${Math.max(1,Math.round(hours))}時間後に雨予報`,status:'hours'};
+                    if(hours<1) return {text:`現在〜1時間以内に${kind}`,status:'raining'};
+                    if(hours<24) return {text:`約${Math.max(1,Math.round(hours))}時間後に${kind}`,status:'hours'};
                     const days=Math.floor(hours/24),rest=Math.round(hours-days*24);
-                    return {text:rest===24?`約${days+1}日後に雨予報`:rest?`約${days}日${rest}時間後に雨予報`:`約${days}日後に雨予報`,status:'days'};
+                    return {text:rest===24?`約${days+1}日後に${kind}`:rest?`約${days}日${rest}時間後に${kind}`:`約${days}日後に${kind}`,status:'days'};
                 }
             }
             if(last<first) return {text:'降水予報を取得できません',status:'unknown'};
@@ -1407,6 +1415,7 @@
             const targetLocation = activeLocation || '東京都品川区';
             updateResultLocationSelect();
 
+            if (errorBox) errorBox.classList.add('hidden');
             if (!isPullRefresh && btn && loading) {
                 btn.disabled = true;
                 btn.classList.add('opacity-50', 'pointer-events-none');
@@ -1452,7 +1461,7 @@
                         if (overviewData) {
                             overviewTarget = overviewData.targetArea || '';
                             if (overviewData.reportDatetime) {
-                                const d = new Date(overviewData.reportDatetime);
+                                const d = jstClock(Date.parse(overviewData.reportDatetime));
                                 overviewReportTime = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} 発表`;
                             }
                         }
@@ -1620,8 +1629,12 @@
                         const findHourVal = (targetHour) => {
                             const prefix = `${dateStr}T${String(targetHour).padStart(2, '0')}`;
                             const idx = hTime.findIndex(t => t.startsWith(prefix));
-                            if (idx !== -1 && hTemp[idx] !== undefined && hTemp[idx] !== null) {
-                                return Math.round(hTemp[idx]);
+                            if (idx !== -1 && validNumber(hApparent[idx])) {
+                                return Math.round(hApparent[idx]);
+                            }
+                            if (idx !== -1 && [hTemp[idx], hHumidity[idx], hWind[idx]].every(validNumber)) {
+                                const e = hHumidity[idx] / 100 * 6.105 * Math.exp(17.27 * hTemp[idx] / (237.7 + hTemp[idx]));
+                                return Math.round(hTemp[idx] + 0.33 * e - 0.70 * (hWind[idx] / 3.6) - 4);
                             }
                             return null;
                         };
@@ -1753,7 +1766,7 @@
             } finally {
                 if(generation!==requestGeneration) return;
                 document.getElementById("resultScrollContainer")?.classList.remove("opacity-50");
-                if (!isPullRefresh && btn && loading) {
+                if (btn && loading) {
                     btn.disabled = false;
                     btn.classList.remove('opacity-50', 'pointer-events-none');
                     loading.classList.add('hidden');
@@ -1809,7 +1822,7 @@
             if (weatherTextEl) weatherTextEl.innerText = weatherText;
             if (maxTempEl) maxTempEl.innerText = maxTemp ?? "--";
             if (minTempEl) minTempEl.innerText = minTemp ?? "--";
-            if (apparentTempEl) apparentTempEl.innerText = `${validNumber(apparentTemp) ? apparentTemp.toFixed(1) : "--"}℃`;
+            if (apparentTempEl) apparentTempEl.innerText = `${validNumber(apparentTemp) ? Math.round(apparentTemp) : "--"}℃`;
 
             if (pop6h && pop6h.length === 4) {
                 if (popSlot0) popSlot0.innerText = `${pop6h[0] ?? "--"}%`;
@@ -1829,7 +1842,7 @@
             const outfit = evaluateClothingByCriteria(apparentTemp);
             if (criteriaBadge) criteriaBadge.innerText = outfit.label;
             if (weatherTextEl) weatherTextEl.title = data.sourceNote || "";
-            if (apparentTempEl) apparentTempEl.title = "10〜15時の6時点の平均。丸める前の値で服装を判定";
+            if (apparentTempEl) apparentTempEl.title = "10〜15時の平均を整数に四捨五入して表示。服装は丸める前の値で判定";
 
             if (outfitSec) {
                 outfitSec.innerHTML = `
@@ -1847,17 +1860,17 @@
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">朝 (8時)</div>
+                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">朝 (8時)</div>
                         <div class="font-bold text-[#1c1c1e] font-mono text-[16px] my-1">${morningTemp ?? "--"}℃</div>
                         <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(morningTemp) ? 'データなし' : morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">昼 (14時)</div>
+                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">昼 (14時)</div>
                         <div class="font-bold text-orange-600 font-mono text-[16px] my-1">${noonTemp ?? "--"}℃</div>
                         <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(noonTemp) ? 'データなし' : noonTemp >= 22 ? '上着不要' : '適温'}</div>
                     </div>
                     <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
-                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap">夜 (20時)</div>
+                        <div class="text-[#374151] text-[13px] font-bold whitespace-nowrap" title="体感温度">夜 (20時)</div>
                         <div class="font-bold text-[#007aff] font-mono text-[16px] my-1">${nightTemp ?? "--"}℃</div>
                         <div class="text-[#4b5563] text-[13px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(nightTemp) ? 'データなし' : nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
                     </div>
@@ -1890,10 +1903,40 @@
             }
         }
 
+        // 気象庁の公式天気コード表（2026-10-04確認）。独自の番号推測を使わない。
+        const JMA_WEATHER_TEXT = {"100":"晴","101":"晴時々曇","102":"晴一時雨","103":"晴時々雨","104":"晴一時雪","105":"晴時々雪","106":"晴一時雨か雪","107":"晴時々雨か雪","108":"晴一時雨か雷雨","110":"晴後時々曇","111":"晴後曇","112":"晴後一時雨","113":"晴後時々雨","114":"晴後雨","115":"晴後一時雪","116":"晴後時々雪","117":"晴後雪","118":"晴後雨か雪","119":"晴後雨か雷雨","120":"晴朝夕一時雨","121":"晴朝の内一時雨","122":"晴夕方一時雨","123":"晴山沿い雷雨","124":"晴山沿い雪","125":"晴午後は雷雨","126":"晴昼頃から雨","127":"晴夕方から雨","128":"晴夜は雨","130":"朝の内霧後晴","131":"晴明け方霧","132":"晴朝夕曇","140":"晴時々雨で雷を伴う","160":"晴一時雪か雨","170":"晴時々雪か雨","181":"晴後雪か雨","200":"曇","201":"曇時々晴","202":"曇一時雨","203":"曇時々雨","204":"曇一時雪","205":"曇時々雪","206":"曇一時雨か雪","207":"曇時々雨か雪","208":"曇一時雨か雷雨","209":"霧","210":"曇後時々晴","211":"曇後晴","212":"曇後一時雨","213":"曇後時々雨","214":"曇後雨","215":"曇後一時雪","216":"曇後時々雪","217":"曇後雪","218":"曇後雨か雪","219":"曇後雨か雷雨","220":"曇朝夕一時雨","221":"曇朝の内一時雨","222":"曇夕方一時雨","223":"曇日中時々晴","224":"曇昼頃から雨","225":"曇夕方から雨","226":"曇夜は雨","228":"曇昼頃から雪","229":"曇夕方から雪","230":"曇夜は雪","231":"曇海上海岸は霧か霧雨","240":"曇時々雨で雷を伴う","250":"曇時々雪で雷を伴う","260":"曇一時雪か雨","270":"曇時々雪か雨","281":"曇後雪か雨","300":"雨","301":"雨時々晴","302":"雨時々止む","303":"雨時々雪","304":"雨か雪","306":"大雨","308":"雨で暴風を伴う","309":"雨一時雪","311":"雨後晴","313":"雨後曇","314":"雨後時々雪","315":"雨後雪","316":"雨か雪後晴","317":"雨か雪後曇","320":"朝の内雨後晴","321":"朝の内雨後曇","322":"雨朝晩一時雪","323":"雨昼頃から晴","324":"雨夕方から晴","325":"雨夜は晴","326":"雨夕方から雪","327":"雨夜は雪","328":"雨一時強く降る","329":"雨一時みぞれ","340":"雪か雨","350":"雨で雷を伴う","361":"雪か雨後晴","371":"雪か雨後曇","400":"雪","401":"雪時々晴","402":"雪時々止む","403":"雪時々雨","405":"大雪","406":"風雪強い","407":"暴風雪","409":"雪一時雨","411":"雪後晴","413":"雪後曇","414":"雪後雨","420":"朝の内雪後晴","421":"朝の内雪後曇","422":"雪昼頃から雨","423":"雪夕方から雨","425":"雪一時強く降る","426":"雪後みぞれ","427":"雪一時みぞれ","450":"雪で雷を伴う"};
+        function normalizeWeatherCode(code) {
+            if(code==null) return null;
+            const c=Number(code);
+            if(!validNumber(c)) return null;
+            if(c>=100) {
+                const text=JMA_WEATHER_TEXT[String(c)];
+                if(!text) return null;
+                if(text.includes('雨')) return 61;
+                if(text.includes('雪')) return 71;
+                if(text.includes('晴')&&text.includes('曇')) return 2;
+                return text.includes('晴')?0:3;
+            }
+            return c;
+        }
+        function weatherDescription(code) {
+            if(code!=null && Number(code)>=100) {
+                const text=JMA_WEATHER_TEXT[String(code)];
+                return text ? text.replace(/晴/g,'晴れ').replace(/曇/g,'曇り').replace(/後/g,'のち') : 'データ取得不可';
+            }
+            const c=normalizeWeatherCode(code);
+            if(c===null) return 'データ取得不可';
+            if(c>=71&&c<=77 || c>=85&&c<=86) return '雪';
+            if(c>=51&&c<=67 || c>=80&&c<=82 || c>=95) return '雨';
+            if(c<2) return '晴れ';
+            if(c===2) return '晴れ時々曇り';
+            return c<4?'曇り':'霧';
+        }
+
         function renderWeeklyListIcon(weatherCode, weatherText = '') {
             if (weatherCode === null && !weatherText) return '<span class="text-gray-400">--</span>';
-            if (Number(weatherCode)>=100) {const c=Number(weatherCode);weatherText=c>=400?'雪':c>=300?'雨':c>=200?'曇り':'晴れ';weatherCode=null;}
-            const isRain = weatherText.includes('雨') || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82);
+            if (Number(weatherCode)>=100) {weatherText=weatherDescription(weatherCode);weatherCode=normalizeWeatherCode(weatherCode);if(weatherCode===null)return '<span class="text-gray-400">--</span>';}
+            const isRain = weatherText.includes('雨') || (weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82) || (weatherCode>=95&&weatherCode<=99);
             const isSnow = weatherText.includes('雪') || (weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86);
             const isSunCloud = weatherText.includes('晴') && weatherText.includes('曇');
             const isClear = weatherText === '晴れ' || weatherCode === 0 || weatherCode === 1;
@@ -2074,7 +2117,7 @@
 
                 const displayMax = maxT !== null ? maxT : '--';
                 const displayMin = minT !== null ? minT : '--';
-                const displayPop = `${pop ?? "--"}%`;
+                const displayPop = `${validNumber(pop) ? pop : "--"}%`;
                 const iconSvg = renderWeeklyListIcon(weatherCode, '');
                 const labelText = `${dateNum}日(${dayText})`;
 

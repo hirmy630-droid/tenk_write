@@ -1,6 +1,6 @@
 // Update version whenever index.html changes. Scoped caches only.
 'use strict';
-const VERSION = '20261004-49b5f193a066';
+const VERSION = '20261004-ef21b238b867';
 const ROOT = new URL(self.registration.scope);
 const PREFIX = 'weather-pwa-' + encodeURIComponent(ROOT.pathname) + '-';
 const CACHE = PREFIX + VERSION;
