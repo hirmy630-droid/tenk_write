@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '20261004-214259';
+const VERSION = '20261005-012200';
 const BASE = self.registration.scope;
 const PREFIX = 'weather-pwa-' + encodeURIComponent(BASE) + '-';
 const CACHE_NAME = PREFIX + VERSION;
@@ -22,10 +22,10 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
     await Promise.all(keys.filter(key => key.startsWith(PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key)));
-    await self.clients.claim();
     const clients = await self.clients.matchAll({ type: 'window' });
+    await self.clients.claim();
     await Promise.all(clients.filter(client => isAppDocument(new URL(client.url))).map(async client => {
-      try { await client.navigate(client.url); } catch (_) { /* Refresh on next opening. */ }
+      client.postMessage({ type: 'WEATHER_APP_UPDATED', version: VERSION });
     }));
   })());
 });
