@@ -326,6 +326,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
         <!-- Scrollable Content Area -->
         <div id="resultScrollContainer" class="flex-1 overflow-y-auto px-3.5 py-2 space-y-2.5 max-w-sm w-full mx-auto overscroll-y-contain">
+            <div id="forecastErrorBox" role="alert" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed break-words"></div>
             
             <!-- Pull-To-Refresh Indicator Block -->
             <div id="ptrContainer" class="w-full">
@@ -1639,6 +1640,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
             const targetLocation = activeLocation || '東京都品川区';
             updateResultLocationSelect();
 
+            const forecastErrorBox = document.getElementById('forecastErrorBox');
+            if (forecastErrorBox) { forecastErrorBox.textContent = ''; forecastErrorBox.classList.add('hidden'); }
             if (errorBox) errorBox.classList.add('hidden');
             if (!isPullRefresh && btn && loading) {
                 btn.disabled = true;
@@ -1694,7 +1697,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     }
                 }
 
-                if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || targetLocation;
+                if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || getLocationLabel(targetLocation);
                 if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁発表時刻：取得不可';
 
                 let jmaData = null;
@@ -1978,6 +1981,11 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 if (errorBox) {
                     errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
                     errorBox.classList.remove('hidden');
+                }
+                if (forecastErrorBox) {
+                    forecastErrorBox.textContent = err.message || '予報を取得できません。通信を確認してください。';
+                    forecastErrorBox.classList.remove('hidden');
+                    resultScroll?.scrollTo(0, 0);
                 }
                 return false;
             } finally {
