@@ -326,7 +326,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
         <!-- Scrollable Content Area -->
         <div id="resultScrollContainer" class="flex-1 overflow-y-auto px-3.5 py-2 space-y-2.5 max-w-sm w-full mx-auto overscroll-y-contain">
-            <div id="forecastErrorBox" role="alert" class="hidden bg-[#fee2e2] border border-[#f87171] rounded-2xl p-4 text-[14px] text-[#b91c1c] leading-relaxed break-words"></div>
             
             <!-- Pull-To-Refresh Indicator Block -->
             <div id="ptrContainer" class="w-full">
@@ -614,6 +613,24 @@ Check your Browserslist config to be sure that your targets are set up correctly
     </div>
 
     <!-- ==================== JavaScript ロジック ==================== -->
+
+<style>
+#hourClothingDialog {box-sizing:border-box;width:calc(100% - 32px);max-width:440px;max-height:calc(100dvh - 40px);overflow-y:auto;border:1px solid #e5e5ea;border-radius:18px;padding:20px;color:#1c1c1e;background:#fff;box-shadow:0 16px 48px #0003;font-size:16px;line-height:1.6;}
+#hourClothingDialog::backdrop {background:rgba(0,0,0,.4);}
+#hourClothingDialog h2 {font-size:20px;font-weight:800;margin:0 0 8px;}
+#hourClothingDialog .hour-outfit {margin:12px 0;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;overflow-wrap:anywhere;}
+#hourClothingDialog .hour-label {color:#b45309;font-size:14px;font-weight:700;}
+#hourClothingDialog .hour-value {font-size:17px;font-weight:700;}
+#hourClothingDialog button {width:100%;min-height:44px;border:0;border-radius:12px;background:#f2f2f7;font-weight:700;color:#1c1c1e;margin-top:8px;}
+#timeTimeline button {font-family:inherit;cursor:pointer;width:100%;color:inherit;appearance:none;-webkit-appearance:none;}
+#timeTimeline button:focus-visible {outline:2px solid #007aff;outline-offset:2px;}
+</style>
+<dialog id="hourClothingDialog" aria-labelledby="hourClothingTitle">
+<h2 id="hourClothingTitle"></h2><p id="hourClothingTemperature"></p>
+<div class="hour-outfit"><div class="hour-label">上着・トップス</div><div id="hourClothingJacket" class="hour-value"></div></div>
+<div class="hour-outfit"><div class="hour-label">ボトムス・ズボン</div><div id="hourClothingPants" class="hour-value"></div></div>
+<button type="button" onclick="closeHourClothingDialog()">閉じる</button>
+</dialog>
     <script>
         const STORAGE_KEY_LIST = 'weather_checker_saved_locations_list';
         const STORAGE_KEY_NAMES = 'weather_checker_location_names';
@@ -698,15 +715,46 @@ Check your Browserslist config to be sure that your targets are set up correctly
         };
 
         // 【手持ち服リスト】および【判定基準】に厳密に従った判定ロジック
+
+        let hourClothingData = null;
+        let hourClothingTrigger = null;
+        function openHourClothingDialog(hour, trigger) {
+            if (![8,14,20].includes(hour) || !hourClothingData) return;
+            const data = hourClothingData;
+            const temperature = data[({8:'morningTemp',14:'noonTemp',20:'nightTemp'})[hour]];
+            const available = validNumber(temperature);
+            const outfit = available ? evaluateClothingByCriteria(temperature) : null;
+            document.getElementById('hourClothingTitle').textContent = `${data.targetDateFormatted || ''} ${hour}時の服装`;
+            document.getElementById('hourClothingTemperature').textContent = available ? `体感温度 ${Math.round(temperature)}℃` : '体感温度：データなし';
+            document.getElementById('hourClothingJacket').textContent = outfit ? outfit.jacket : 'この時間の体感温度を取得できません';
+            document.getElementById('hourClothingPants').textContent = outfit ? outfit.pants : 'データ取得後に判定します';
+            hourClothingTrigger = trigger;
+            const dialog = document.getElementById('hourClothingDialog');
+            if (!dialog.open) dialog.showModal();
+        }
+        function closeHourClothingDialog() {
+            document.getElementById('hourClothingDialog').close();
+        }
+        document.getElementById('hourClothingDialog').addEventListener('click', event => {
+            if (event.target !== event.currentTarget) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeHourClothingDialog();
+        });
+        document.getElementById('hourClothingDialog').addEventListener('close', () => {
+            if (hourClothingTrigger?.isConnected) hourClothingTrigger.focus({preventScroll:true});
+            hourClothingTrigger = null;
+        });
+
         function evaluateClothingByCriteria(t) {
             if (!Number.isFinite(t)) return {label:'判定できません',jacket:'10〜15時の体感温度データを取得できません',pants:'データ取得後に判定します'};
             const rows = [
-                [25,'25℃以上','半袖シャツ','ズボン'],
-                [20,'20℃以上25℃未満','長袖シャツ','ズボン'],
-                [18,'18℃以上20℃未満','インナーシャツ＋長袖シャツ＋ジャケット','ズボン'],
-                [15,'15℃以上18℃未満','インナーシャツ＋長袖シャツ＋軽防寒服','インナー＋ズボン'],
-                [10,'10℃以上15℃未満','軽防寒インナー＋長袖シャツ＋軽防寒服','インナー＋軽防寒ズボン'],
-                [6,'6℃以上10℃未満','防寒インナー＋長袖シャツ＋ジャケット＋軽防寒服','防寒インナー＋軽防寒ズボン'],
+                [31,'31℃以上','空調服','夏ズボン'],
+                [25,'25℃以上31℃未満','半袖シャツ','夏ズボン'],
+                [21,'21℃以上25℃未満','長袖','ズボン'],
+                [18,'18℃以上21℃未満','長袖＋ジャケット','冬ズボン'],
+                [15,'15℃以上18℃未満','インナー＋長袖＋ジャケット','インナー＋冬ズボン'],
+                [11,'11℃以上15℃未満','防寒インナー＋長袖＋軽防寒服','インナー＋軽防寒ズボン'],
+                [6,'6℃以上11℃未満','防寒インナー＋長袖シャツ＋ジャケット＋軽防寒服','防寒インナー＋軽防寒ズボン'],
                 [-Infinity,'6℃未満','防寒インナー＋長袖シャツ＋重防寒服','防寒インナー＋防寒ズボン']
             ];
             const r=rows.find(r=>t>=r[0]); return {label:r[1],jacket:r[2],pants:r[3]};
@@ -720,11 +768,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
             return '穏やか・微風';
         }
 
-        const CURRENT_LOCATION = '__current_location__';
         let locations = [];
         let locationNames = Object.create(null);
         function getLocationLabel(address) {
-            return address === CURRENT_LOCATION ? '現在地' : (locationNames[address] || address);
+            return locationNames[address] || address;
         }
         function editLocationName(address) {
             document.getElementById('locationInput').value = address;
@@ -885,7 +932,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             }
 
             const savedActive = localStorage.getItem(STORAGE_KEY_ACTIVE);
-            if (savedActive && (savedActive === CURRENT_LOCATION || locations.includes(savedActive))) {
+            if (savedActive && locations.includes(savedActive)) {
                 activeLocation = savedActive;
             } else {
                 activeLocation = locations[0];
@@ -904,7 +951,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             if (!listEl) return;
 
             listEl.innerHTML = '';
-            [CURRENT_LOCATION, ...locations.filter(loc => loc !== CURRENT_LOCATION)].forEach((loc) => {
+            locations.forEach((loc) => {
                 const isActive = (loc === activeLocation);
                 
                 const item = document.createElement('div');
@@ -948,10 +995,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 nameBtn.textContent = '名前';
                 nameBtn.setAttribute('aria-label', `${loc}の名前を編集`);
                 nameBtn.onclick = () => editLocationName(loc);
-                if (loc !== CURRENT_LOCATION) {
-                    item.appendChild(nameBtn);
-                    item.appendChild(delBtn);
-                }
+                item.appendChild(nameBtn);
+                item.appendChild(delBtn);
                 listEl.appendChild(item);
             });
 
@@ -963,7 +1008,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             if (!selectEl) return;
 
             selectEl.innerHTML = '';
-            [CURRENT_LOCATION, ...locations.filter(loc => loc !== CURRENT_LOCATION)].forEach((loc) => {
+            locations.forEach((loc) => {
                 const opt = document.createElement('option');
                 opt.value = loc;
                 opt.textContent = getLocationLabel(loc);
@@ -1234,52 +1279,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             try {const r=await fetch(url,{signal:controller.signal,cache:'no-store'});if(!r.ok) throw new Error('HTTP '+r.status);return await r.json();}
             finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
         }
-        function acquireCurrentPosition(signal) {
-            return new Promise((resolve, reject) => {
-                if (!window.isSecureContext) return reject(new Error('現在地はGitHub PagesのHTTPS公開ページで使用してください。'));
-                if (!navigator.geolocation) return reject(new Error('この端末では現在地を取得できません。登録済み地点を選んでください。'));
-                const abort = () => finish(new DOMException('Aborted', 'AbortError'));
-                let done = false;
-                let timer;
-                function finish(error, position) {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timer);
-                    signal?.removeEventListener('abort', abort);
-                    if (error) reject(error); else resolve(position);
-                }
-                if (signal?.aborted) return abort();
-                signal?.addEventListener('abort', abort, {once:true});
-                timer = setTimeout(() => finish(new Error('現在地の取得が時間切れになりました。屋外などで再度お試しください。')), 20000);
-                navigator.geolocation.getCurrentPosition(
-                    position => finish(null, position),
-                    error => finish(new Error(error.code === 1
-                        ? '位置情報が許可されていません。端末・ブラウザの位置情報を許可するか、登録済み地点を選んでください。'
-                        : error.code === 3 ? '現在地の取得が時間切れになりました。再度お試しください。'
-                        : '現在地を取得できません。位置情報の設定と通信を確認してください。')),
-                    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
-                );
-            });
-        }
-        async function resolveCurrentArea(signal) {
-            const position = await acquireCurrentPosition(signal);
-            const lat = position.coords.latitude, lon = position.coords.longitude;
-            if (!validNumber(lat) || !validNumber(lon) || Math.abs(lat)>90 || Math.abs(lon)>180)
-                throw new Error('現在地の座標を取得できません。');
-            const [reverse, tree] = await Promise.all([
-                getJSON('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon), signal),
-                areaTree ? Promise.resolve(areaTree) : getJSON('https://www.jma.go.jp/bosai/common/const/area.json', signal)
-            ]);
-            areaTree = tree;
-            const muni = String(reverse.results?.muniCd || '').padStart(5, '0');
-            const city = tree.class20s?.[muni+'00'];
-            const region = tree.class15s?.[city?.parent]?.parent;
-            const office = tree.class10s?.[region]?.parent;
-            if (!city || !office) throw new Error('現在地の日本の予報区域を特定できません。登録済み地点を選んでください。');
-            return {lat, lon, code:office, region, title:city.name};
-        }
         async function resolveAreaAndCoords(name, signal) {
-            if (name === CURRENT_LOCATION) return resolveCurrentArea(signal);
             if(resolvedLocations.has(name)) return resolvedLocations.get(name);
             const [hits,tree]=await Promise.all([
                 getJSON('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(name),signal),
@@ -1640,8 +1640,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
             const targetLocation = activeLocation || '東京都品川区';
             updateResultLocationSelect();
 
-            const forecastErrorBox = document.getElementById('forecastErrorBox');
-            if (forecastErrorBox) { forecastErrorBox.textContent = ''; forecastErrorBox.classList.add('hidden'); }
             if (errorBox) errorBox.classList.add('hidden');
             if (!isPullRefresh && btn && loading) {
                 btn.disabled = true;
@@ -1697,7 +1695,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     }
                 }
 
-                if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || getLocationLabel(targetLocation);
+                if (jmaOverviewTitle) jmaOverviewTitle.innerText = overviewTarget || targetLocation;
                 if (jmaReportTimeBadge) jmaReportTimeBadge.innerText = overviewReportTime || '気象庁発表時刻：取得不可';
 
                 let jmaData = null;
@@ -1858,11 +1856,11 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             const prefix = `${dateStr}T${String(targetHour).padStart(2, '0')}`;
                             const idx = hTime.findIndex(t => t.startsWith(prefix));
                             if (idx !== -1 && validNumber(hApparent[idx])) {
-                                return Math.round(hApparent[idx]);
+                                return hApparent[idx];
                             }
                             if (idx !== -1 && [hTemp[idx], hHumidity[idx], hWind[idx]].every(validNumber)) {
                                 const e = hHumidity[idx] / 100 * 6.105 * Math.exp(17.27 * hTemp[idx] / (237.7 + hTemp[idx]));
-                                return Math.round(hTemp[idx] + 0.33 * e - 0.70 * (hWind[idx] / 3.6) - 4);
+                                return hTemp[idx] + 0.33 * e - 0.70 * (hWind[idx] / 3.6) - 4;
                             }
                             return null;
                         };
@@ -1974,18 +1972,13 @@ Check your Browserslist config to be sure that your targets are set up correctly
             } catch (err) {
                 if(generation!==requestGeneration) return;
                 cachedForecastData=null; cachedRawMeteoData=null;
-                renderForecastView({weatherText:"データ取得不可",windText:"データなし",pop6h:[null,null,null,null],targetDateFormatted:getLocationLabel(targetLocation)+"：取得失敗"});
+                renderForecastView({weatherText:"データ取得不可",windText:"データなし",pop6h:[null,null,null,null],targetDateFormatted:targetLocation+"：取得失敗"});
                 document.getElementById("weeklyForecastList").textContent="予報データを取得できません";
                 document.getElementById("nextRainText").textContent="降水予報を取得できません";
                 console.error("Forecast Error:", err);
                 if (errorBox) {
                     errorBox.innerText = `データ取得中にエラーが発生しました: ${err.message}`;
                     errorBox.classList.remove('hidden');
-                }
-                if (forecastErrorBox) {
-                    forecastErrorBox.textContent = err.message || '予報を取得できません。通信を確認してください。';
-                    forecastErrorBox.classList.remove('hidden');
-                    resultScroll?.scrollTo(0, 0);
                 }
                 return false;
             } finally {
@@ -2013,6 +2006,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
         window.addEventListener('resize', () => requestAnimationFrame(fitClothingText));
 
         function renderForecastView(data) {
+            closeHourClothingDialog();
+            hourClothingData = data;
             if (!data) return;
 
             const dateEl = document.getElementById('imageStyleDate');
@@ -2099,21 +2094,21 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
             if (timeTimeline) {
                 timeTimeline.innerHTML = `
-                    <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
+                    <button type="button" onclick="openHourClothingDialog(8, this)" aria-label="8時の服装を表示" class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">朝 (8時)</div>
-                        <div class="font-bold text-[#1c1c1e] font-mono text-[17px] my-1">${morningTemp ?? "--"}℃</div>
+                        <div class="font-bold text-[#1c1c1e] font-mono text-[17px] my-1">${validNumber(morningTemp) ? Math.round(morningTemp) : "--"}℃</div>
                         <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(morningTemp) ? 'データなし' : morningTemp <= 15 ? '羽織り推奨' : '快適'}</div>
-                    </div>
-                    <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
+                    </button>
+                    <button type="button" onclick="openHourClothingDialog(14, this)" aria-label="14時の服装を表示" class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">昼 (14時)</div>
-                        <div class="font-bold text-orange-600 font-mono text-[17px] my-1">${noonTemp ?? "--"}℃</div>
+                        <div class="font-bold text-orange-600 font-mono text-[17px] my-1">${validNumber(noonTemp) ? Math.round(noonTemp) : "--"}℃</div>
                         <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(noonTemp) ? 'データなし' : noonTemp >= 22 ? '上着不要' : '適温'}</div>
-                    </div>
-                    <div class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
+                    </button>
+                    <button type="button" onclick="openHourClothingDialog(20, this)" aria-label="20時の服装を表示" class="bg-[#f8f9fa] rounded-xl px-1 py-2 border border-[#d1d1d6] flex flex-col items-center justify-between min-h-[96px] overflow-hidden">
                         <div class="text-[#374151] text-[14px] font-bold whitespace-nowrap" title="体感温度">夜 (20時)</div>
-                        <div class="font-bold text-[#007aff] font-mono text-[17px] my-1">${nightTemp ?? "--"}℃</div>
+                        <div class="font-bold text-[#007aff] font-mono text-[17px] my-1">${validNumber(nightTemp) ? Math.round(nightTemp) : "--"}℃</div>
                         <div class="text-[#4b5563] text-[14px] font-semibold whitespace-nowrap tracking-tight text-center w-full">${!validNumber(nightTemp) ? 'データなし' : nightTemp <= 14 ? '冷え込み注意' : '過ごしやすい'}</div>
-                    </div>
+                    </button>
                 `;
             }
 
