@@ -270,6 +270,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
             <p id="locationEditHint" class="text-[14px] text-[#4b5563]">登録済み地点の「名前」から変更できます。名前が空欄なら住所を表示します。</p>
             <div class="pt-0.5">
+                <button id="currentLocationButton" type="button" onclick="useCurrentLocation()" style="width:100%;min-height:44px;border:1px solid #d1d1d6;border-radius:10px;background:#f2f2f7;color:#007aff;font-size:14px;font-weight:700;padding:8px;">📍 現在地を取得・再取得</button>
                 <div id="locationList" class="space-y-1.5 max-h-[235px] overflow-y-auto pr-0.5"></div>
             </div>
         </div>
@@ -768,10 +769,75 @@ Check your Browserslist config to be sure that your targets are set up correctly
             return '穏やか・微風';
         }
 
+
+        // Coordinates are held in memory only. No background position tracking.
+        const CURRENT_LOCATION_KEY = '__weather_current_location__';
+        let currentAreaInfo = null;
+        let currentLocationEpoch = 0;
+        let currentLocationController = null;
+        function cancelCurrentLocationRequest() {
+            currentLocationEpoch++;
+            currentLocationController?.abort();
+            currentLocationController = null;
+            const button = document.getElementById('currentLocationButton');
+            if (button) { button.disabled = false; button.textContent = '📍 現在地を取得・再取得'; }
+        }
+        async function useCurrentLocation() {
+            cancelCurrentLocationRequest();
+            const epoch = currentLocationEpoch;
+            const previous = activeLocation;
+            const controller = new AbortController();
+            currentLocationController = controller;
+            const button = document.getElementById('currentLocationButton');
+            if (button) { button.disabled = true; button.textContent = '現在地を取得中…'; }
+            updateResultLocationSelect();
+            try {
+                if (!window.isSecureContext || !navigator.geolocation) throw new Error('現在地の取得に対応していません。GitHub PagesのHTTPSで開いてください。');
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {enableHighAccuracy:false,timeout:15000,maximumAge:0});
+                });
+                if (epoch !== currentLocationEpoch || controller.signal.aborted) return false;
+                const lat = position.coords.latitude, lon = position.coords.longitude;
+                if (!validNumber(lat) || !validNumber(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) throw new Error('現在地の座標を取得できませんでした。');
+                const [address, tree] = await Promise.all([
+                    getJSON(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${lat}&lon=${lon}`, controller.signal),
+                    areaTree ? Promise.resolve(areaTree) : getJSON('https://www.jma.go.jp/bosai/common/const/area.json', controller.signal)
+                ]);
+                if (epoch !== currentLocationEpoch || controller.signal.aborted || activeLocation !== previous) return false;
+                const muni = String(address.results?.muniCd || '').padStart(5,'0');
+                const city = tree.class20s?.[muni+'00'];
+                const region = tree.class15s?.[city?.parent]?.parent;
+                const office = tree.class10s?.[region]?.parent;
+                if (!city || !region || !office) throw new Error('現在地の日本の予報区域を取得できません。登録地点を選ぶか、再取得してください。');
+                areaTree = tree;
+                currentAreaInfo = {lat,lon,code:office,region,title:city.name + (address.results?.lv01Nm || '')};
+                activeLocation = CURRENT_LOCATION_KEY;
+                renderLocations();
+                if (typeof closeLocationManager === 'function') closeLocationManager();
+                return await showForecastView(false);
+            } catch (error) {
+                if (epoch !== currentLocationEpoch || controller.signal.aborted || activeLocation !== previous) return false;
+                updateResultLocationSelect();
+                const message = error.code === 1 ? '位置情報が許可されていません。ブラウザ・端末の位置情報の許可を確認してください。'
+                    : error.code === 2 ? '現在地を取得できませんでした。場所を変えて再度お試しください。'
+                    : error.code === 3 ? '現在地の取得が時間切れになりました。再度お試しください。'
+                    : error.name === 'AbortError' ? '現在地の住所取得が時間切れになりました。通信を確認してください。'
+                    : (error.message || '現在地を取得できませんでした。');
+                alert(message);
+                return false;
+            } finally {
+                if (epoch === currentLocationEpoch) {
+                    currentLocationController = null;
+                    if (button) { button.disabled = false; button.textContent = '📍 現在地を取得・再取得'; }
+                    updateResultLocationSelect();
+                }
+            }
+        }
+
         let locations = [];
         let locationNames = Object.create(null);
         function getLocationLabel(address) {
-            return locationNames[address] || address;
+            return address === CURRENT_LOCATION_KEY ? '現在地' + (currentAreaInfo ? '（' + currentAreaInfo.title + '）' : '') : locationNames[address] || address;
         }
         function editLocationName(address) {
             document.getElementById('locationInput').value = address;
@@ -936,14 +1002,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
                 activeLocation = savedActive;
             } else {
                 activeLocation = locations[0];
-                localStorage.setItem(STORAGE_KEY_ACTIVE, activeLocation);
+                if (activeLocation !== CURRENT_LOCATION_KEY) localStorage.setItem(STORAGE_KEY_ACTIVE, activeLocation);
             }
         }
 
         function saveLocationsToStorage() {
             localStorage.setItem(STORAGE_KEY_NAMES, JSON.stringify(locationNames));
             localStorage.setItem(STORAGE_KEY_LIST, JSON.stringify(locations));
-            localStorage.setItem(STORAGE_KEY_ACTIVE, activeLocation);
+            if (activeLocation !== CURRENT_LOCATION_KEY) localStorage.setItem(STORAGE_KEY_ACTIVE, activeLocation);
         }
 
         function renderLocations() {
@@ -1008,6 +1074,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
             if (!selectEl) return;
 
             selectEl.innerHTML = '';
+            const currentOption = document.createElement('option');
+            currentOption.value = CURRENT_LOCATION_KEY;
+            currentOption.textContent = currentLocationController ? '現在地を取得中…' : getLocationLabel(CURRENT_LOCATION_KEY);
+            selectEl.appendChild(currentOption);
             locations.forEach((loc) => {
                 const opt = document.createElement('option');
                 opt.value = loc;
@@ -1022,6 +1092,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
 
         function handleResultLocationSelect(newLocation) {
+            if (newLocation === CURRENT_LOCATION_KEY) { useCurrentLocation(); return; }
+            cancelCurrentLocationRequest();
             if (!newLocation || newLocation === activeLocation) return;
             activeLocation = newLocation;
             saveLocationsToStorage();
@@ -1034,12 +1106,14 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
 
         function selectLocation(loc) {
+            cancelCurrentLocationRequest();
             activeLocation = loc;
             saveLocationsToStorage();
             renderLocations();
         }
 
         function handleAddLocation() {
+            cancelCurrentLocationRequest();
             const input = document.getElementById('locationInput');
             const nameInput = document.getElementById('locationNameInput');
             const status = document.getElementById('saveStatus');
@@ -1280,6 +1354,10 @@ Check your Browserslist config to be sure that your targets are set up correctly
             finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);}
         }
         async function resolveAreaAndCoords(name, signal) {
+            if (name === CURRENT_LOCATION_KEY) {
+                if (!currentAreaInfo) throw new Error('現在地を再取得してください。');
+                return {...currentAreaInfo};
+            }
             if(resolvedLocations.has(name)) return resolvedLocations.get(name);
             const [hits,tree]=await Promise.all([
                 getJSON('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(name),signal),
@@ -1624,6 +1702,8 @@ Check your Browserslist config to be sure that your targets are set up correctly
         }
 
         async function fetchForecastData(isPullRefresh = false) {
+            closeHourClothingDialog();
+            hourClothingData = null;
             const generation = ++requestGeneration;
             forecastAbort?.abort();
             forecastAbort = new AbortController();
@@ -1972,7 +2052,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
             } catch (err) {
                 if(generation!==requestGeneration) return;
                 cachedForecastData=null; cachedRawMeteoData=null;
-                renderForecastView({weatherText:"データ取得不可",windText:"データなし",pop6h:[null,null,null,null],targetDateFormatted:targetLocation+"：取得失敗"});
+                renderForecastView({weatherText:"データ取得不可",windText:"データなし",pop6h:[null,null,null,null],targetDateFormatted:getLocationLabel(targetLocation)+"：取得失敗"});
                 document.getElementById("weeklyForecastList").textContent="予報データを取得できません";
                 document.getElementById("nextRainText").textContent="降水予報を取得できません";
                 console.error("Forecast Error:", err);
