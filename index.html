@@ -391,7 +391,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                     <div onclick="openHourlyModal()" class="cursor-pointer active:opacity-75 transition-opacity" title="タップして1時間ごとの天気を表示">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[#374151] text-[15px] font-bold">降水確率 (6時間毎)</span>
-                            <a id="radarButton" href="https://weather.yahoo.co.jp/weather/zoomradar/" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); configureRadarLink(this)" class="ios-btn bg-blue-50 hover:bg-blue-100 text-[#007aff] font-semibold text-[15px] rounded-lg border border-blue-200 px-3 shrink-0 inline-flex items-center justify-center" style="min-height:30px; margin-left:8px;" aria-label="レーダー：Yahoo!天気の雨雲レーダーを開く" title="Yahoo!天気の雨雲レーダーを開きます（iPhone・iPadはショートカット経由）">レーダー</a>
+                            <a id="radarButton" href="https://weather.yahoo.co.jp/weather/zoomradar/" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation(); this.href = getHighResolutionRadarUrl()" class="ios-btn bg-blue-50 hover:bg-blue-100 text-[#007aff] font-semibold text-[15px] rounded-lg border border-blue-200 px-3 shrink-0 inline-flex items-center justify-center" style="min-height:30px; margin-left:8px;" aria-label="レーダー：Yahoo!天気の雨雲レーダーを開く" title="Yahoo!天気の雨雲レーダーを別画面で開きます">レーダー</a>
                         </div>
                         <div id="subPop6hGrid" class="grid grid-cols-4 gap-1.5 text-center font-mono">
                             <div class="bg-[#f8f9fa] border border-[#d1d1d6] rounded-lg py-1">
@@ -1161,20 +1161,6 @@ Check your Browserslist config to be sure that your targets are set up correctly
 
         // Yahoo!天気の公式雨雲レーダーを別画面で開く。
         // 取得済みの選択地点を使用し、追加の位置情報取得や通信は行わない。
-        // iPhone・iPadはユーザー作成済みのショートカットを実行する。
-        // PC・Androidでは選択地点のYahoo!天気Webレーダーを開く。
-        function configureRadarLink(link) {
-            const appleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            if (appleMobile) {
-                link.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent('Yahoo雨雲レーダー');
-                link.target = '_self';
-            } else {
-                link.href = getHighResolutionRadarUrl();
-                link.target = '_blank';
-            }
-        }
-
         function getHighResolutionRadarUrl() {
             const base = 'https://weather.yahoo.co.jp/weather/zoomradar/';
             const info = activeLocation === CURRENT_LOCATION_KEY
