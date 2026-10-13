@@ -1,5 +1,5 @@
 'use strict';
-const VERSION = '20261013-223146-radar';
+const VERSION = '20261013-223606-yahoo-radar';
 const BASE = self.registration.scope;
 const PREFIX = 'weather-pwa-' + encodeURIComponent(BASE) + '-';
 const CACHE_NAME = PREFIX + VERSION;
