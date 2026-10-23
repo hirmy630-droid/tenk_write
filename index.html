@@ -1955,6 +1955,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                         }
                     }
 
+                    let clothingWindSpeed = null;
                     const hourly = meteoData?.hourly;
                     if (hourly && Array.isArray(hourly.time)) {
                         const hTime = hourly.time;
@@ -2000,7 +2001,7 @@ Check your Browserslist config to be sure that your targets are set up correctly
                             }
                         }
 
-                        const clothingWindSpeed = clothingWindSpeeds.length === 6 ? Math.max(...clothingWindSpeeds) : null;
+                        clothingWindSpeed = clothingWindSpeeds.length === 6 ? Math.max(...clothingWindSpeeds) : null;
                         if (targetHoursApparent.length === 6) {
                             const sum = targetHoursApparent.reduce((acc, cur) => acc + cur, 0);
                             apparentTemp = sum / targetHoursApparent.length;
